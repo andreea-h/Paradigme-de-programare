@@ -1,0 +1,13 @@
+#lang racket
+(define a 4)
+( if (< a 0)
+     a
+     (if (> a 10)
+         (* a a)
+         10))
+(define (factorial n)
+  (if (= n 0)
+      1
+      (* n (factorial (- n 1)))))
+
+(factorial 2)
