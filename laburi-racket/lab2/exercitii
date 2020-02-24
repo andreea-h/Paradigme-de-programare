@@ -1,0 +1,330 @@
+#lang racket/gui
+
+; ignorați următoarele linii de cod.
+(define default-results '(#f 0 () your-code-here)) ; ce rezultate default sunt întoarse în exerciții
+(define show-defaults 2) ; câte exerciții la care s-au întors rezultate default să fie arătate detaliat
+(define prepend #f) (define name-ex '(exercițiul . exercițiile)) ; variante: '(exercițiul . exercițiile) sau '(testul . testele) sau '(task . taskurile)
+(define : 'separator) (define punct 'string) (define puncte 'string) (define BONUS 'string) (define total 0) (define n-ex 0) (define p-ex 0) (define defaults '())
+(define (ex n sep p . s) (set! n-ex n) (set! p-ex p)) (define exercițiul ex) (define (p L) (map (λ (e) (display e) (display " ")) L) (newline))
+(define (check-exp given expected) (check-exp-part "" 1 given expected)) (define (check-exp-part part percent given expected) (if (not (equal? given expected)) (and
+  (when (member given default-results) (set! defaults (cons (if (< percent 1) (cons n-ex part) n-ex) defaults))) (when (or (not (member given default-results))
+        (<= (length defaults) show-defaults)) (p `(NU: la ,(car name-ex) ,(if (< percent 1) (cons n-ex part) n-ex) rezultatul ,given diferă de cel așteptat: ,expected))))
+ (let ((pts (* p-ex percent))) (and (if prepend (printf "+~v: " pts) (printf "OK: "))
+  (p `(,(car name-ex) ,(if (< percent 1) (cons n-ex part) n-ex) rezolvat: + ,pts ,(if (= pts 1) 'punct 'puncte))) (set! total (+ total pts))))))
+(define (sumar) (when (and (not (null? defaults)) (< show-defaults (length defaults))) (p `(... rezultatul implicit dat la ,(cdr name-ex) ,(reverse defaults)))) (p `(total: ,total puncte)))
+
+;; Se urmărește rezolvarea următoarei probleme:
+;; Pornind de la o imagine dată, să se genereze o imagine compusă, rezultată
+;; prin suprapunerea mai multor instanțe ale imaginii inițiale, rotite
+;; cu diferite unghiuri. Se va utiliza recursivitate pe stivă și/sau pe coadă.
+;;
+;; Problema va fi descompusă în următoarele părți:
+;; * inversarea unei liste (necesară, de obicei, funcțiilor recursive pe coadă);
+;; * partiționarea unei liste;
+;; * eliminarea duplicatelor dintr-o listă și determinarea numărului de apariții;
+;; * determinarea prefixului comun, respectiv sufixului comun pentru două liste;
+;; * suprapunerea instanțelor unei imagini într-o imagine unică.;
+
+(require 2htdp/image)
+
+(define (cool-ellipse angle)
+  (rotate angle (ellipse 150 30 "solid"
+                         (make-color 0 0 255
+                                     (max 10 (round (* (/ angle 360) 255)))))))
+(define GEN-IMAGES (list (circle 25 "solid" "yellow") (star 40 "solid" "orange") (triangle 50 "solid" "red") (square 50 "solid" "blue") 
+      (triangle 50 "solid" "red") (star-polygon 20 10 3 "solid" "purple") 
+      (circle 25 "solid" "yellow") (star 40 "solid" "orange") (triangle 50 "solid" "red") 
+      (rhombus 30 60 "solid" "magenta") (regular-polygon 25 8 "solid" "green") (circle 25 "solid" "blue")
+      (star-polygon 20 10 3 "solid" "purple") (circle 25 "solid" "yellow") (star 40 "solid" "orange") 
+      (regular-polygon 15 10 "solid" "violet")))
+(define GEN-BONUS-IMAGES (list (circle 25 "solid" "yellow") (triangle 50 "solid" "red") (square 50 "solid" "blue") (star 40 "solid" "orange") 
+     (regular-polygon 25 8 "solid" "green") (circle 25 "solid" "blue") (star-polygon 20 10 3 "solid" "purple")))
+(define (GEN-INITIAL) (foldl overlay empty-image (map cool-ellipse (range 0 91 10))))
+(define TEST-4 (list (regular-polygon 15 10 "solid" "violet") (circle 25 "solid" "blue") (regular-polygon 25 8 "solid" "green")
+     (rhombus 30 60 "solid" "magenta") (star-polygon 20 10 3 "solid" "purple") (square 50 "solid" "blue")  (triangle 50 "solid" "red")
+     (star 40 "solid" "orange") (circle 25 "solid" "yellow")))
+(define TEST-5 (list (square 50 "solid" "blue") (triangle 50 "solid" "red") (rhombus 30 60 "solid" "magenta") (regular-polygon 25 8 "solid" "green")
+      (circle 25 "solid" "blue") (star-polygon 20 10 3 "solid" "purple") (circle 25 "solid" "yellow") (star 40 "solid" "orange")
+      (regular-polygon 15 10 "solid" "violet")))
+
+;; Funcții de checker pt ex 10
+(define (has? x L)
+  (and (not (null? L)) (or (equal? x (car L)) (has? x (cdr L)))))
+
+(define (check-imgs1 images)
+  (and (not (equal? images 'your-code-here))
+       (equal? (length images) (length BONUS-IMAGES-RESULT1))
+       (equal? (length images) (length (remove-duplicates-left images)))
+       (andmap (λ (img) (has? img BONUS-IMAGES-RESULT1)) images)))
+
+(define (check-imgs2 images)
+  (and (not (equal? images 'your-code-here))
+       (equal? (length images) (length BONUS-IMAGES-RESULT2))
+       (equal? (length images) (length (remove-duplicates-left images)))
+       (andmap (λ (img) (has? img BONUS-IMAGES-RESULT2)) images)))
+(define BONUS-IMAGES-RESULT1 '(. . .))
+
+(define BONUS-IMAGES-RESULT2 '(. . . . . . . . . . . . . . . . . . . . .))
+(define IMAGES '(. . . . . . . . . . . . . . . .))
+(define BONUS-IMAGES '(. . . . . . .))
+(define INITIAL .)
+
+;; 0. (Introductiv)
+;; Exercițiul 2 din laboratorul 1 solicita implementarea funcției de inversare,
+;; pornind de la următoarele axiome:
+;; rev([ ]) = [ ]
+;; rev(x:l) = rev(l) ++ [x]
+;; Ce tip de recursivitate este surprins aici?
+
+(exercițiul 1 : 1 punct)
+;; Implementați funcția de inversare utilizând celălalt tip de recursivitate.
+
+(define (rev-iter L result)
+  (if (null? L)
+      result
+      (rev-iter (cdr L) (append (list (car L)) result))))
+
+(define (rev L)
+  (rev-iter L null))
+
+(check-exp (rev '(5 1 4 8 7)) '(7 8 4 1 5))
+
+(exercițiul 2 : 1.5 puncte)
+;; Păstrați dintr-o listă de imagini doar acele imagini care au înălțimea mai mică decât height.
+;; Pentru a determina înălțimea unei imagini folosiți funcția image-height. 
+;; Exemplu: (image-height (ellipse 30 40 "solid" "orange"))
+;; Funcția va fi recursivă pe stivă.
+
+(define (lesser images height)
+      (if (<= (length images) 0)
+          null
+          (if (< (image-height (car images)) height)
+              (append (list (car images)) (lesser (cdr images) height))
+              (lesser (cdr images) height))))
+
+(check-exp-part 'a .25 (lesser (flatten (for/list ([x '(10 5 20 40 50 30)]) (for/list ([y '("blue" "green" "red" "yellow")])
+    (circle x "solid" y)))) 80) '(. . . . . . . . . . . . . . . .))
+(check-exp-part 'b .25 (lesser (flatten (for/list ([x '(10 5 20 40 50 30)]) (for/list ([y '("blue" "green" "red" "yellow")])
+    (circle x "solid" y)))) 10) '())
+(check-exp-part 'c .25 (lesser IMAGES 60) '(. . . . . . . . . .))
+(check-exp-part 'd .25 (lesser IMAGES 50) '(. . . .))
+
+
+(exercițiul 3 : 1.5 puncte)
+;; Păstrați dintr-o listă de imagini doar acele imagini care au înălțimea mai mare sau egală cu height.
+;; Funcția va fi recursivă pe coadă.
+
+(define (greater-iter images result height)
+  (if (null? images)
+      result
+      (if (>= (image-height (car images)) height)
+          (greater-iter (cdr images) (append result (list (car images)))  height)
+          (greater-iter (cdr images) result height))))
+
+
+
+(define (greater images height)
+  (greater-iter images null height))
+
+(check-exp-part 'a .25 (greater IMAGES 50) '(. . . . . . . . . . . .))
+(check-exp-part 'b .25 (greater (flatten (for/list ([x '(10 5 20 40 50 30)]) (for/list ([y '("blue" "green" "red" "yellow")])
+    (circle x "solid" y)))) 80) '(. . . . . . . .))
+(check-exp-part 'c .25 (greater BONUS-IMAGES 50) '(. . . . . .))
+(check-exp-part 'd .25 (greater IMAGES 100) ' ())
+
+
+(exercițiul 4 : 1.5 puncte)
+;; Păstrați dintr-o listă prima apariție a elementelor duplicat. 
+;; Care este tipul natural de recursivitate pentru această funcție?
+;; hint: (member x L) - verifică dacă elementul x este în lista L
+;; Exemple: (member 2 '(1 2 3)) -> '(2 3), (member 4 '(1 2 3)) -> #f
+;; Funcția member poate fi folosită drept condiție în structura if
+;;recursivitate pe coada
+
+(define (remove-duplicates-iter result L)
+  (if (null? L)
+      result
+      (if (equal? (member (car L) result) #f)
+          (remove-duplicates-iter (append result (list (car L))) (cdr L))
+          (remove-duplicates-iter result (cdr L)))))
+
+(define (remove-duplicates-left L)
+  (remove-duplicates-iter null L))
+           
+(check-exp-part 'a .5 (remove-duplicates-left '(1 2 3 3 4 5 6 3 3)) '(1 2 3 4 5 6))
+(check-exp-part 'b .5 (remove-duplicates-left IMAGES) '(. . . . . . . . .))
+
+(exercițiul 5 : 1.5 puncte)
+;; Păstrați dintr-o listă ultima apariție a elementelor duplicat. Elementele din
+;; lista finală vor fi în aceeași ordine.
+;; NU folosiți inversarea de liste în rezolvarea exercițiului
+;; Care este tipul natural de recursivitate pentru această funcție?
+
+(define (remove-duplicates-right L)
+  (if (null? L)
+      null
+      (if (equal? (member (car L) (cdr L)) #f) ;;element cu aparitie unica
+          (append (list (car L)) (remove-duplicates-right (cdr L)))
+          (remove-duplicates-right (cdr L)))))
+          
+
+
+(check-exp-part 'a .5 (remove-duplicates-right '(1 2 3 3 4 5 6 3 3)) '(1 2 4 5 6 3))
+(check-exp-part 'b .5 (remove-duplicates-right IMAGES) '(. . . . . . . . .))
+
+(exercițiul 6 : 1.5 puncte)
+;; Determinați prefixul comun pentru două liste, utilizând o funcție recursivă.
+(define (common-prefix-iter L1 L2 result)
+  (if (or (null? L1)  (null? L2))
+      result
+      (if (equal? (car L1) (car L2))
+          (common-prefix-iter (cdr L1) (cdr L2) (append result (list (car L1))))
+          result)))
+
+(define (common-prefix L1 L2)
+  (common-prefix-iter L1 L2 null))
+  
+(check-exp-part 'a .5 (common-prefix '(1 2 3 4 5 6 7) '(1 2 3 9 10 12 5 6)) '(1 2 3))
+(check-exp-part 'b .5 (common-prefix '(. . . . . . .) '(. . . . . . .)) '(. . . .))
+
+
+(exercițiul 7 : 1.5 puncte)
+;; Determinați sufixul comun pentru două liste, utilizând o funcție recursivă.
+;; NU este permisă inversarea listelor L1 si L2 sau aplicarea funcției de la punctul (6).
+;; Implementarea trebuie să aibă o complexitate mai bună de O(n^2).
+;; Ce tip de recursivitate ați folosit pentru realizarea acestei funcții?
+;; S-ar fi putut implementa funcția folosind celălalt tip de recursivitate?
+;; hint: (drop L n) - elimină primele n elemente din lista L 
+
+;recursivitate pe coada
+
+(define (common-suffix-iter L1 L2 n1 n2 result)
+  (if (or (<= n1 0) (<= n2 0))
+      result
+      (if (equal? (drop L1 n1) (drop L2 n2))
+          (common-suffix-iter L1 L2 (- n1 1) (- n2 1) (drop L1 n1))
+          result)))
+
+(define (common-suffix L1 L2)
+  (common-suffix-iter L1 L2 (- (length L1) 1) (- (length L2) 1) null))
+
+(check-exp-part 'a .25 (common-suffix '(1 2 3 4 5 6 7) '(1 2 3 9 10 12 5 6)) '())
+(check-exp-part 'b .25 (common-suffix '(1 2 3 4 5 6 7) '(1 2 3 9 10 12 5 6 7)) '(5 6 7))
+(check-exp-part 'c .5 (common-suffix '(. . . . . .) '(. . . . . . .)) '(. . . .))
+
+(exercițiul 8 : 1 punct BONUS)
+;; Pornind de la o listă de imagini, și de la o imagine inițială, construiți
+;; o unică imagine, rezultată prin suprapunerea tuturor imaginilor, în maniera
+;; următoare:
+;; * prima imagine din listă deasupra imaginii inițiale
+;; * a doua imagine din listă deasupra rezultatului
+;; ...
+;; * ultima imagine din listă deasupra rezultatului.
+;; Numele funcției este 'overlay->', pentru a indica sensul de parcurgere
+;; de la stânga la dreapta.
+;; Care este tipul natural de recursivitate pentru această funcție?
+;; Utilizați funcția predefinită (overlay <deasupra> <dedesubt>).
+
+(define (overlay->iter images result)
+  (if (null? images)
+      result
+      (overlay->iter (cdr images) (overlay (car images) result))))
+
+(define (overlay-> initial images)
+  (overlay->iter (cdr images) (overlay (car images) initial)))
+
+(check-exp (overlay-> INITIAL BONUS-IMAGES) .)
+
+(exercițiul 9 : 2 puncte BONUS)
+;; Implementați sortarea prin interclasare (merge sort) pentru imagini
+;; Sortarea trebuie să fie în ordine descrescătoare, cu funcția de ordine:
+;; img1 < img2 = (image-height img1) < (image-height img2)
+;; În cazul în care înălțimile imaginilor sunt egale, se va compara lățimea
+;; Axiome mergesort:
+;; mergesort [x] = [x]  - o listă cu un element este deja sortată
+;; mergesort L = merge (mergesort (fst-half L)) (mergesort (snd-half L)) unde:
+;; - merge = funcție de interclasare a două liste (primește două liste sortate
+;;           și întoarce o listă sortată compusă din cele două liste primite)
+;; - fst-half / snd-half = funcții ce împart o listă în două jumătăți
+
+(define (snd-half L)
+  (drop L (quotient (length L) 2)))
+  
+(define (fst-half L)
+   (take L (quotient (length L) 2)))
+
+;returneaza imaginea care are latimea minima
+(define (min-width l1 l2)
+  (if (equal? (min (image-width (car l1)) (image-width (car l2))) (image-width (car l1)))
+      l1
+      l2))
+;returneaza imaginea care are latimea maxima
+(define (max-width l1 l2)
+  (if (equal? (max (image-width (car l1)) (image-width  (car l2))) (image-width l1))
+      l1
+      l2))
+  
+
+;(snd-half '(1 2 3 6 4))
+;functia de interclasare a doua liste deja sortate
+(define (merge-iter SL RL result)
+  (cond ((and (equal? SL null) (>= (length RL) 1)) (append result RL))
+        ((and (equal? RL null) (>= (length SL) 1)) (append result SL))
+        ((and (equal? RL null) (equal? SL null)) result)
+        ((> (image-height (car SL)) (image-height (car RL)))
+          (merge-iter (cdr SL) RL (append result (list (car SL)))))
+        ((< (image-height (car SL)) (image-height (car RL)))
+          (merge-iter SL (cdr RL) (append result (list (car RL)))))
+        ((= (image-height (car SL)) (image-height (car RL)))
+         (if (equal? (min-width SL RL) SL)
+          (merge-iter SL (cdr RL) (append result (list (car RL))))
+          (merge-iter (cdr SL) RL (append result (list (car SL))))))
+        ))
+       ;  (else (merge-iter SL (cdr RL) (append result (list (car RL)))))))
+
+(define (merge SL RL)
+  (merge-iter SL RL null))
+  
+
+(define (mergesort L)
+  (if (= (length L) 1)
+      L
+      (merge (mergesort (fst-half L)) (mergesort (snd-half L)))))
+
+
+(check-exp-part 'a .5 (mergesort '(.  . ...  . . .)) '(. . . . . . . .))
+(check-exp-part 'b .5 (mergesort '(. . . . . . . . .)) '(. . . . . . . . .))
+
+
+(exercițiul 10 : 2 puncte BONUS)
+;; Se dă o listă cu n imagini și un număr natural k mai mic sau egal
+;; cu dimensiunea listei. Să se genereze o noua listă cu imagini astfel:
+;; - se generează toate submulțimile de dimensiune k ale listei primite
+;; - se sorteaza în ordine crescătoare fiecare submulțime
+;; - se suprapun imaginile din fiecare submulțime astfel încât prima
+;; imagine să fie cea mai din spate, iar ultima imagine să fie imaginea
+;; din față
+;; - lista de imagini cerută este lista formată din imaginile suprapuse
+;; din fiecare submulțime generată
+;; Pentru a genera o imagine de fundal folosiți empty-image
+;; hint: Pentru fiecare element din listă poți alege dacă îl adaugi sau
+;; nu la submulțimea curentă. Deoarece dorim să creăm toate submulțimile
+;; trebuie să luăm în calcul ambele variante.
+;; Remember, în cadrul unui apel de funcție, prima dată sunt evaluați
+;; parametrii, apoi funcția propriu zisă!
+;; Astfel, rezultatul unui apel recursiv poate fi folosit drept rezultat
+;; intermediar pentru un alt apel.
+;; Pentru verificarea rezultatelor (în caz ca aveți un rezultat greșit)
+;; listele cu imaginile ce trebuie să rezulte se gasesc în variabilele
+;; BONUS-IMAGES-RESULT1/2. Rezultatul vostru îl puteți obține prin rularea
+;; apelului image-subsets din cele două apeluri check-exp-part.
+
+(define (image-subsets images k)
+  'your-code-here)
+
+(check-exp-part 'a .5 (check-imgs1 (image-subsets '(. . .) 2)) #t)
+
+(check-exp-part 'b .5 (check-imgs2 (image-subsets '(. . ..  . . .) 5)) #t)
+
+
+(sumar)
