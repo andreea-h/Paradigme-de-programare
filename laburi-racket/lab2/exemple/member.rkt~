@@ -1,0 +1,4 @@
+#lang racket
+(define (member x L)
+  (if (null? L)
+      (if (equal? x (car L))
