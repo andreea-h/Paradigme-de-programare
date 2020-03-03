@@ -39,7 +39,7 @@
                  max-count)))
 
 ;; Acum putem observă direct cum arată execuția funcției factorial iterativ.
-;(trace fact-iter)
+(trace fact-iter)
 ;(factorial2 5)
 
 ;; Ce trebuie reținut în memoria programului la un moment dat:
@@ -60,6 +60,12 @@
 
 ;; Exercițiul 2 - același lucru pentru funcția fibonacci
 
+(define (fibonacci n)
+  (cond ((= n 0) 0)
+        ((= n 1) 1)
+        (else (+ (fibonacci (- n 1))
+                 (fibonacci (- n 2))))))
+(fibonacci 5)
 (define (fib n)
   (cond ((= n 0) 0)
         ((= n 1) 1)
@@ -67,7 +73,7 @@
                  (fib (- n 2))))))
 
 ;(trace fib)
-;(fib 5)
+(fib 5)
 
 ;; - în program se reține calea de revenire (pe stivă) și pentru
 ;;   apelul curent se rețin n și cele 2 rezultate parțiale
@@ -93,7 +99,7 @@
       (fib-iter (+ a b) a (- count 1))))
 
 ;(trace fib-iter)
-;(fib2 5)
+(fib2 5)
 
 ;; Varianta iterativă are O(n) timp, și O(1) spațiu
 ;; Varianta recursivă are O(fib n) timp, și O(n) spațiu
@@ -142,6 +148,16 @@
       (reverse Result)
       (app-iter (cdr B) (cons (car B) Result))))
 
+(define (tail-rec n result)
+  (if (= n 0)
+      result
+      (tail-rec (- n 1) (* n result))))
+(define (factorial-rec n)
+  (tail-rec n 1))
+;;functiile recursive pe stiva se intorc din recursivitate pentru a intoarce un rezultat
+;;functiile recursive pe coada pot intoarce rezultatul pe parcursul apelului recursiv
+
+(factorial-rec 5)
 ;(trace app-iter)
 ;(app '(1 2 3 4 5) '(a b c))
 
@@ -150,3 +166,37 @@
 ;; că folosim cons drept constructor de liste, care adaugă doar la
 ;; început. Soluția uzuală este folosirea funcției reverse
 ;; pentru inversarea rezultatului înainte de return.
+
+
+;;rec pe stiva
+(define (sum2-list L)
+  (if (null? L)
+      0
+      (+ (car L) (sum2-list (cdr L)))))
+(sum2-list '(1 2 3 4))
+
+;;rec pe coada
+(define (sum3-list L result)
+  (if (null? L)
+      result
+      (sum3-list (cdr L) (+ result (car L)))))
+
+(define (suma L)
+  (sum3-list L 0))
+(suma '(1 2 3 4 5))
+
+
+(define (smaller-divisor n)
+  (find-divisor n 2))
+
+(define (square n)
+    (* n n))
+                   
+(define (find-divisor n test-divisor)
+  (cond ((> (square test-divisor) n) n)
+        ((divides? test-divisor n) test-divisor)
+        (else (find-divisor n (+ test-divisor 1)))))
+(define (divides? a b) (= (remainder b a) 0))
+
+(smaller-divisor 13)
+

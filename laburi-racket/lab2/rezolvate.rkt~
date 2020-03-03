@@ -11,8 +11,8 @@
       (* n (factorial (- n 1)))))
 
 ;; Acum putem observa direct cum arată execuția funcției factorial:
-;(trace factorial)
-;(factorial 5)
+(trace factorial)
+(factorial 5)
 
 ;; Ce trebuie reținut în memoria programului la un moment dat:
 ;; - argumentul n curent (de ex 1)

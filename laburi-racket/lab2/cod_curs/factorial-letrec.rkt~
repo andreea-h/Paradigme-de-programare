@@ -1,0 +1,9 @@
+#lang racket
+(define factorial (λ (n)
+                    (letrec ((factorial-aux (λ (n rezultat)
+                                              (if (= n 1)
+                                                  rezultat
+                                                  (factorial-aux (sub1 n) (* n resultat))
+                                                  )
+                                              ))))))
+                                

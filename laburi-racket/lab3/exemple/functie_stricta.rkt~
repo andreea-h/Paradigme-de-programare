@@ -1,0 +1,6 @@
+#lang racket
+(define strict (λ (conditie x)
+                 (if conditie
+                     x ;cand conditie este ceva care nu este #f
+                     #f))) ;returneaza #f atunci cand conditie este #f
+(strict #t (/ 5 0)) ;functie stricta->evaluarea parametrilor se face inainte de aplicarea functiei asupra acestora

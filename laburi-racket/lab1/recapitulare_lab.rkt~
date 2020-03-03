@@ -1,0 +1,5 @@
+#lang racket
+(define (num->base n b)
+  (if (=n 0)
+      null
+      (append (num->base (quotient n b) b) (modulo n b))))
