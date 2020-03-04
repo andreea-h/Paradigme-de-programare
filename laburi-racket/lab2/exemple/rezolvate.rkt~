@@ -1,5 +1,4 @@
 #lang racket
-#lang racket
 
 ;; DrRacket pune la dispozitie o functie de tracing.
 (require (lib "trace.ss"))
@@ -12,8 +11,8 @@
       (* n (factorial (- n 1)))))
 
 ;; Acum putem observa direct cum arata executia functiei factorial:
-;(trace factorial)
-;(factorial 5)
+(trace factorial)
+(factorial 5)
 
 ;; Ce trebuie retinut in memoria programului la un moment dat:
 ;; - argumentul n curent (de ex 1)
@@ -40,8 +39,8 @@
                  max-count)))
 
 ;; Acum putem observa direct cum arata executia functiei factorial iterativ.
-;(trace fact-iter)
-;(factorial2 5)
+(trace fact-iter)
+(factorial2 5)
 
 ;; Ce trebuie retinut in memoria programului la un moment dat:
 ;; - argumentul n, argumentul n curent si rezultatul partial (de ex 1, 6)

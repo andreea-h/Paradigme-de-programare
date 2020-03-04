@@ -1,0 +1,8 @@
+#lang racket
+(define factorial
+  (λ (n)
+    (letrec ((aux (λ (n rezP)
+                    (if (= n 0)
+                        rezP
+                        (aux (sub1 n) (* n rezP))))))
+      (aux n 1))))
