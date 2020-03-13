@@ -8,21 +8,21 @@
     (lambda (y)
       (+ x y))))
 
-((add-curry 2) 5)       ;; 7 - observati apelul: intai (add-curry 2), apoi rezultatul aplicat pe 5
-(add-curry 2)           ;; #<procedure> - va fi o noua functie care asteapta un argument 
+;((add-curry 2) 5)       ;; 7 - observati apelul: intai (add-curry 2), apoi rezultatul aplicat pe 5
+;(add-curry 2)           ;; #<procedure> - va fi o noua functie care asteapta un argument 
                         ;; pentru a il aduna cu 2
 
 (define add-uncurry
   (lambda (x y)
     (+ x y)))
 
-(add-uncurry 2 5)       ;; 7
+;(add-uncurry 2 5)       ;; 7
 ;(add-uncurry 2)         ;; procedure add-uncurry: expects 2 arguments, given 1: 2
                         ;; deci o eroare, intrucat o functie uncurry trebuie sa isi primeasca
                         ;; toate argumentele deodata
 
 (define inc-curry (add-curry 1))
-(inc-curry 5)           ;; 6 - inc-curry este exact functia increment, definita aici cu
+;(inc-curry 5)           ;; 6 - inc-curry este exact functia increment, definita aici cu
                         ;; minim de efort pe baza functiei add-curry
                         ;; ceea ce produce (add-curry 1) este (lambda (y) (+ x y)) cu x legat la 1
 
@@ -49,7 +49,7 @@
 (define sort-descending (sort-ins >=))
 (define sort-mod5 (sort-ins (lambda (x y) (< (modulo x 5) (modulo y 5)))))
 
-(sort-ascending '(6 1 7 9 3 2 4 6 7))      ;; o functie de sortare crescatoare
+;(sort-ascending '(6 1 7 9 3 2 4 6 7))      ;; o functie de sortare crescatoare
 ;(sort-descending '(6 1 7 9 3 2 4 6 7))     ;; o functie de sortare descrescatoare
 ;(sort-mod5 '(6 1 7 9 3 2 4 6 7))           ;; o functie de sortare dupa restul la impartirea cu 5
 
