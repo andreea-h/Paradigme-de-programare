@@ -141,15 +141,12 @@
 ;; Hint: `string-append` concatenează două string-uri
 ;; Hint: Puteți folosi funcțiile `number->string` și `string->number`
 (define (num-concat x y)
-   ((λ (x y)
-     (letrec ((+ (λ (x y)
+     (letrec ((+ (λ (x y) ;;procedura '+' suprascrisa pentru a realiza concatenarea a doua numere x si y, intoarce numarul rezultat
                    (string->number (string-append (number->string x) (number->string y))))))
-       
-              (+ x y)))
-    x y))
+               (+ x y)));; Nu stergeți această linie.
               
        
-  ;  (+ x y));; Nu stergeți această linie.
+ 
 
 (check-exp-part 'a (/ 1. 2) (num-concat 1 2) 12)
 (check-exp-part 'b (/ 1. 2) (num-concat 33 674) 33674)
@@ -161,9 +158,11 @@
 ;;          Nu aveți voie să folosiți funcționale.
 ;; Hint: Folosiți-vă de funcția distance
 (define (compute-perimeter points)
+  ;nr_points = numarul de puncte din lista points
+  ;rezP retine valoarea pentru perimetru, calculata folosind primele poz puncte din points
    (letrec ((aux (λ (points rezP poz first nr_points) ;first este primul punct din lista 
                    (if (equal? poz nr_points)
-                       (+ rezP (distance first (car points)))
+                       (+ rezP (distance first (car points))) ;se intoarce distanta de la ultimul punct din lista la primul punct
                        (aux (cdr points) (+ rezP (distance (car points) (cadr points))) (add1 poz) first nr_points)))))
             (aux points 0 1 (car points) (length points))))
                    
@@ -184,25 +183,26 @@
 ;; Hint:: Uitați-vă peste splitf-at.
 (define (3-sequence-max numbers separator)
   (let*-values (((1-sequence 2-sequence) (splitf-at numbers (λ (x) (not (equal? x separator))))))
+    ;urmeaza sa se imparta si 2-sequnce in 2 secvente delimitate de separator(acestea sunt 3-sequence su 4-sequence)
     (let*-values (((3-sequence 4-sequence) (splitf-at (cdr 2-sequence) (λ (x) (not (equal? x separator))))))
       ;calculeaza maximul sumelor secventelor 1-sequnce, 3-sequence, 4-sequence
-      (letrec ((suma4 (λ (4-sequence n result) ;;acest letrec intoarce suma elementelor din lista 4-sequence
+      (letrec ((suma4 (λ (4-sequence n result) ;;aceasta procedura calculeaza suma numerelor din 4-sequence
                        (if (equal? n 0)
                            result
                            (suma4 (cdr 4-sequence) (- n 1) (+ result (car 4-sequence)))))
                      )
-              (suma1 (λ (1-sequence n result) ;;acest letrec intoarce suma elementelor din lista 4-sequence
+              (suma1 (λ (1-sequence n result) ;;;aceasta procedura calculeaza suma numerelor din 1-sequence
                        (if (equal? n 0)
                            result
                            (suma1 (cdr 1-sequence) (- n 1) (+ result (car 1-sequence)))))
                      )
-              (suma3 (λ (3-sequence n result) ;;acest letrec intoarce suma elementelor din lista 4-sequence
+              (suma3 (λ (3-sequence n result) ;;aceasta procedura calculeaza suma numerelor din 3-sequence
                        (if (equal? n 0)
                            result
                            (suma3 (cdr 3-sequence) (- n 1) (+ result (car 3-sequence)))))
                      ))
               (max (suma4 4-sequence (length 4-sequence) 0) (suma1 1-sequence (length 1-sequence) 0) (suma3 3-sequence (length 3-sequence) 0))))))
-                      
+              ;in corpul lui letrec se obtine maximul celor 3 sume        
    
 
 (check-exp-part 'a (/ 1. 2) (3-sequence-max '(1 0 2 0 3) 0) 3)
@@ -217,9 +217,8 @@
 ;; Care implementare este mai straightforward, este mai ușor de înțeles
 ;; și lasă loc pentru mai puține erori?
 (define (list-num-concat numbers)
-  (string->number (foldl (λ (elem rezP)
-            (string-append rezP (number->string elem))
-             )
+  (string->number (foldl (λ (elem rezP) ;;aceasta procedura primeste ca parametri un numar (elem) si un string (rezP)
+                           (string-append rezP (number->string elem)))
         (list->string null) numbers)))
 
 
@@ -254,7 +253,13 @@
 ;; ordinea de parcurgere fiind reprezentată sub forma unei liste de stări.
 ;; Atenție: Trebuie să folosiți named let.
 (define (run initial-state final-state next)
-  'your-code-here)
+  (let automat ((current-state initial-state)
+                (end final-state)
+                (rez null))
+    (if (equal? current-state end)
+        (append rez (list current-state))
+        (automat (next current-state) end (append rez (list current-state))))))
+        
 
 (check-exp-part 'a (/ 1. 4) (run 0 9 add1) (range 10))
 (check-exp-part 'b (/ 1. 4) (run 9 0 sub1) (reverse (range 10)))
@@ -267,7 +272,8 @@
 ;; folosind formula i*k+x.
 ;; Atenție: Folosiți funcția run.
 (define (generate-number k x)
-  'your-code-here)
+  (list-num-concat (run x ( + x (* k (- k 1))) ;se incepe de la pozitia i = k
+                          (λ (val) (+ val k)))))
 
 (check-exp-part 'c (/ 1. 2) (generate-number 3 2) 258)
 (check-exp-part 'd (/ 1. 2) (generate-number 3 3) 369)
