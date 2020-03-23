@@ -1,0 +1,2 @@
+#lang racket
+(struct position (x y))
