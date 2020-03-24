@@ -260,7 +260,7 @@
 ; mai mare sau egal cu cel al pământului.
 (define (check-ground-collision bird)
    (let ((y-coord (get-bird-y bird)))
-         (if (> (+ y-coord bird-height) ground-y)
+         (if (>= (+ y-coord bird-height) ground-y)
              #t ;coliziune cu pamantul
              #f)))
 
@@ -279,7 +279,7 @@
 ; Odată creată logică coliziunilor dintre pasăre și pipes, vrem să integrăm
 ; funcția nou implementată în invalid-state?.
 (define (invalid-state? state)
-  (and (check-ground-collision (get-bird state))
+  (or (check-ground-collision (get-bird state))
       (check-pipe-collisions (get-bird state) (get-pipes state))))
 
 ;TODO 21
@@ -293,23 +293,40 @@
 ; coliziuni doar între pasăre și cele două părți. Dacă pasărea se află în
 ; chenarul lipsă, nu există coliziune.
 ;
+(define (get-near-pipe bird pipes) ;intoarce valoarea minima a diferentei dintre pipe-x si bird-x
+  (apply min (map (λ (pipe)
+                    (- (get-pipe-x pipe)  (struct-bird-x bird)))
+                      pipes)))
+
+(define (get-pipe-with-x x pipes bird) ;intoarce pipe-ul cu valoarea lui x data 
+  (filter (λ (pipe)
+             (if (= (- (get-pipe-x pipe) (struct-bird-x bird)) x)
+                #t
+                #f))
+          pipes))
+
 ; Hint: Vă puteți folosi de check-collision-rectangle, care va primi drept parametri
 ; colțul din stânga sus și cel din dreapta jos ale celor două dreptunghiuri
 ; pe care vrem să verificăm coliziunea.
 (define (check-pipe-collisions bird pipes)
-   (ormap (λ (pipe)
+   ; (let ((pipe (car (get-pipe-with-x (get-near-pipe bird pipes) pipes bird))))
+  (ormap (λ (pipe)
             (or
-             ;verifica coliziunea cu dreptunghiul de sus
+            ;verifica coliziunea cu dreptunghiul de sus
             (check-collision-rectangles  (make-posn (struct-bird-x bird) (struct-bird-y bird))
                                     (make-posn (+ (struct-bird-x bird) bird-width) (+ (struct-bird-y bird) bird-height))
                                     (make-posn (get-pipe-x pipe) (- (struct-bird-y bird) pipe-height))
-                                    (make-posn (+ (struct-pipe-x pipe) pipe-width) (struct-pipe-y pipe)))
+                                   (make-posn (+ (struct-pipe-x pipe) pipe-width) (struct-pipe-y pipe)))
             (check-collision-rectangles (make-posn (struct-bird-x bird) (struct-bird-y bird))
                                    (make-posn (+ (struct-bird-x bird) bird-width) (+ (struct-bird-y bird) bird-height))
-                                   (make-posn (get-pipe-x pipe) (+ (struct-pipe-y pipe) pipe-height))
+                                   (make-posn (get-pipe-x pipe) (+ (struct-pipe-y pipe) pipe-self-gap))
                                    (make-posn (+ (get-pipe-x pipe) pipe-width) (+ (struct-bird-y bird) pipe-height)))))
-           pipes))
-
+         pipes))
+           ; (check-collision-rectangles (make-posn (struct-bird-x bird) (struct-bird-y bird))
+                                  ;      (make-posn (+ (struct-bird-x bird) bird-width) (+ (struct-bird-y bird) bird-height))
+                                   ;     (make-posn (get-pipe-x pipe) (struct-pipe-y pipe))
+                                   ;     (make-posn (+ (get-pipe-x pipe) pipe-width) (+ (struct-bird-y bird) bird-height))))))
+             
 (define (check-collision-rectangles A1 A2 B1 B2)
   (match-let ([(posn AX1 AY1) A1]
               [(posn AX2 AY2) A2]
@@ -363,7 +380,7 @@
 (define ground-image (rectangle scene-width ground-height "solid" "brown"))
 (define initial-scene (empty-scene scene-width scene-height))
 (define pipe-image (rectangle pipe-width pipe-height "solid" "green"))
-(define gap-image (rectangle pipe-self-gap pipe-width "solid" "white"))
+(define gap-image (rectangle pipe-width pipe-self-gap "solid" "pink"))
 
 (define text-family (list "Gill Sans" 'swiss 'normal 'bold #f))
 (define (score-to-image x)
@@ -371,7 +388,7 @@
 
 (define (draw-frame state)
  (match-let ([(struct-bird x y v-y) (get-bird state)])
-       (place-image bird-image x y
+       (place-image bird-image (+ x (/ bird-width 2))  (+ y (/ bird-height 2))
              (place-image ground-image (/ scene-width 2) (- scene-height (/ ground-height 2))
                   (place-image (score-to-image (get-score state)) text-x text-y
                            (place-pipes (get-pipes state)
@@ -383,9 +400,12 @@
 (define (place-pipes pipes scene)
   (foldl (λ (pipe rezP)
              ;(place-image pipe-image (get-pipe-x pipe) (struct-pipe-y pipe) rezP))
-           (place-images (list pipe-image pipe-image)
-                         (list (make-posn (+ (get-pipe-x pipe) (/ pipe-width 2)) (- (struct-pipe-y pipe) (/ pipe-height 2)))
-                              (make-posn (+ (get-pipe-x pipe) (/ pipe-width 2)) (+ (+ (struct-pipe-y pipe) (/ pipe-height 2)) pipe-gap)))
+           (place-images (list pipe-image pipe-image ;gap-image)
+                               )
+                         (list (make-posn (+ (get-pipe-x pipe) (/ pipe-width 2))  (- (struct-pipe-y pipe) (/ pipe-height 2)))
+                               (make-posn (+ (get-pipe-x pipe) (/ pipe-width 2)) (+ (+ (struct-pipe-y pipe) (/ pipe-height 2)) pipe-self-gap))
+                            ;   (make-posn (+ (get-pipe-x pipe) (/ pipe-width 2)) (+ (struct-pipe-y pipe) (/ pipe-self-gap 2))))
+                               )
                             rezP))
          scene pipes))
   
