@@ -7,6 +7,8 @@
 
 (require "abilities.rkt")
 (require "constants.rkt")
+(require "random.rkt")
+
 ;---------------------------------------checker_exports------------------------------------------------
 (provide next-state)
 (provide next-state-bird)
@@ -85,13 +87,17 @@
 (define-struct struct-pipe (x y) #:transparent)
 (define-struct struct-variables (gravity momentum scroll-speed) #:transparent)
 
+;(define-struct struct-ability (image time pos next) #:transparent)
+
 (define my_bird (struct-bird bird-x bird-initial-y 0))
 (define my_pipe (struct-pipe scene-width (+ added-number (random random-threshold))))
 (define my_variables (struct-variables initial-gravity initial-momentum initial-scroll-speed))
 
-(define-struct struct-state (my_bird pipes-list my_variables score) #:transparent)
+
+(define-struct struct-state (my_bird pipes-list my_variables score abilities) #:transparent)
 (define pipes-list (list my_pipe))
-(define my_state (struct-state my_bird pipes-list my_variables 0))
+;(define my_state (struct-state my_bird pipes-list my_variables 0 abilities))
+
 
 ;(struct-pipe-x my_pipe)
 ;(struct-bird-x my_bird)
@@ -118,8 +124,10 @@
 ; Atenție get-initial-state trebuie sa fie o funcție
 ; și trebuie apelată în restul codului.
 (define (get-initial-state)
-  (struct-state my_bird pipes-list my_variables 0))
-
+ ; (struct-state my_bird pipes-list my_variables 0))
+ ; my_state)
+  (struct-state (struct-bird bird-x bird-initial-y 0) (list (struct-pipe scene-width (+ added-number (random random-threshold))))
+                (struct-variables initial-gravity initial-momentum initial-scroll-speed) 0 ABILITIES))
 ;TODO 2
 ; După aceasta, implementați un getter care extrage din structura voastră
 ; pasărea, și un al doilea getter care extrage din structura pasăre
@@ -175,7 +183,7 @@
    (match-let ((current_bird (get-bird current-state)))
               (cond ((key=? pressed-key " ")
                      (struct-state (next-state-bird-onspace current_bird (get-variables-momentum (get-variables current-state)))
-                                      (get-pipes current-state) (get-variables current-state) (get-score current-state)))
+                                      (get-pipes current-state) (get-variables current-state) (get-score current-state) ABILITIES))
                      (else current-state))))
                    
 
@@ -322,11 +330,7 @@
                                    (make-posn (get-pipe-x pipe) (+ (struct-pipe-y pipe) pipe-self-gap))
                                    (make-posn (+ (get-pipe-x pipe) pipe-width) (+ (struct-bird-y bird) pipe-height)))))
          pipes))
-           ; (check-collision-rectangles (make-posn (struct-bird-x bird) (struct-bird-y bird))
-                                  ;      (make-posn (+ (struct-bird-x bird) bird-width) (+ (struct-bird-y bird) bird-height))
-                                   ;     (make-posn (get-pipe-x pipe) (struct-pipe-y pipe))
-                                   ;     (make-posn (+ (get-pipe-x pipe) pipe-width) (+ (struct-bird-y bird) bird-height))))))
-             
+        
 (define (check-collision-rectangles A1 A2 B1 B2)
   (match-let ([(posn AX1 AY1) A1]
               [(posn AX2 AY2) A2]
@@ -355,7 +359,7 @@
                (old_pipes (get-pipes state))
                (old_score (get-score state)))
   (struct-state (next-state-bird old_bird (get-variables-gravity old_variables))
-                (next-state-pipes old_pipes (get-variables-scroll-speed old_variables)) (get-variables state) (+ old_score 0.1))))
+                (next-state-pipes old_pipes (get-variables-scroll-speed old_variables)) (get-variables state) (+ old_score 0.1) ABILITIES) ))
  ; (struct-state (next-state-bird (get-bird state) (get-variables-gravity (get-variables state)))
           ;      (next-state-pipes (get-pipes state) (get-variables-scroll-speed (get-variables state))) (get-variables state) 0))
  
@@ -378,19 +382,23 @@
 ; pipes -> pipe-width si pipe-height
 (define bird-image (rectangle bird-width bird-height  "solid" "yellow"))
 (define ground-image (rectangle scene-width ground-height "solid" "brown"))
-(define initial-scene (empty-scene scene-width scene-height))
+;(define initial-scene (empty-scene scene-width scene-height))
+(define initial-scene (rectangle scene-width scene-height "solid" "white"))
 (define pipe-image (rectangle pipe-width pipe-height "solid" "green"))
 (define gap-image (rectangle pipe-width pipe-self-gap "solid" "pink"))
 
 (define text-family (list "Gill Sans" 'swiss 'normal 'bold #f))
 (define (score-to-image x)
-	(apply text/font (~v (round x)) 24 "indigo" text-family))
+(if SHOW_SCORE
+	(apply text/font (~v (round x)) 24 "indigo" text-family)
+	empty-image))
+
 
 (define (draw-frame state)
  (match-let ([(struct-bird x y v-y) (get-bird state)])
-       (place-image bird-image (+ x (/ bird-width 2))  (+ y (/ bird-height 2))
-             (place-image ground-image (/ scene-width 2) (- scene-height (/ ground-height 2))
-                  (place-image (score-to-image (get-score state)) text-x text-y
+       (place-image bird-image (+ x (quotient bird-width 2))  (+ y (quotient bird-height 2))
+             (place-image ground-image (quotient scene-width 2) (- scene-height (quotient ground-height 2))
+                  (place-image (score-to-image (get-score state)) (posn-x text-posn) (posn-y text-posn)
                            (place-pipes (get-pipes state)
                               initial-scene))))))
   ;(place-pipes (get-pipes state) initial-scene))
@@ -402,10 +410,8 @@
              ;(place-image pipe-image (get-pipe-x pipe) (struct-pipe-y pipe) rezP))
            (place-images (list pipe-image pipe-image ;gap-image)
                                )
-                         (list (make-posn (+ (get-pipe-x pipe) (/ pipe-width 2))  (- (struct-pipe-y pipe) (/ pipe-height 2)))
-                               (make-posn (+ (get-pipe-x pipe) (/ pipe-width 2)) (+ (+ (struct-pipe-y pipe) (/ pipe-height 2)) pipe-self-gap))
-                            ;   (make-posn (+ (get-pipe-x pipe) (/ pipe-width 2)) (+ (struct-pipe-y pipe) (/ pipe-self-gap 2))))
-                               )
+                         (list (make-posn (+ (get-pipe-x pipe) (quotient pipe-width 2))  (- (struct-pipe-y pipe) (quotient pipe-height 2)))
+                               (make-posn (+ (get-pipe-x pipe) (quotient pipe-width 2)) (+ (+ (struct-pipe-y pipe) pipe-self-gap) (quotient pipe-height 2))))
                             rezP))
          scene pipes))
   
@@ -418,12 +424,18 @@
 ; Abilitatea care va accelera timpul va dura 10 de secunde, va avea imaginea (hourglass "tomato")
 ; va avea inițial poziția null si va modifica scrolls-speed dupa formulă
 ; scroll-speed = scroll-speed + 1
-(define fast-ability 'your-code-here)
+(define fast-ability
+ (struct-ability (hourglass "tomato") 10 null (λ (variables)
+                                                (match-let ((old_speed (get-variables-scroll-speed)))
+                                                           (struct-copy struct-variables variables [scroll-speed (+ 1 old_speed)])))))
 
 ; Abilitatea care va încetini timpul va dura 30 de secunde, va avea imaginea (hourglass "mediumseagreen")
 ; va avea inițial poziția null si va modifica scrolls-speed dupa formulă
 ; scroll-speed = max(5, scroll-speed - 1)
-(define slow-ability 'your-code-here)
+(define slow-ability
+   (struct-ability (hourglass "mediumseagreen") 30 null (λ (variables)
+                                                (match-let ((old_speed (get-variables-scroll-speed)))
+                                                           (struct-copy struct-variables variables [scroll-speed (max 5 (- old_speed 1))])))))
 
 ; lista cu toate abilităţile posibile în joc
 (define ABILITIES (list slow-ability fast-ability))
@@ -449,30 +461,49 @@
 ; intermediară care trebuie să conțină două liste:
 ;  - lista abilităţilor vizibile (încarcate în scenă dar nu neaparat vizibile pe ecran).
 ;  - lista abilităţilor activate (cu care pasărea a avut o coloziune).
-(define (get-abilities x) null)
+(define (get-abilities x)
+  ;(struct-state-abilities x))
+  'ceva)
 
 ; Întoarce abilităţile vizibile din reprezentarea intermediară.
-(define (get-abilities-visible x) null)
+(define (get-abilities-visible x)
+ ; (car (get-abilities x)))
+  'ceva)
 
 ; Întoarce abilităţile active din reprezentarea intermediară.
-(define (get-abilities-active x) null)
+(define (get-abilities-active x)
+  ;(cdr (get-abilities x)))
+  'ceva)
 
 ; Șterge din reprezentarea abilităţilor vizibile pe cele care nu mai sunt vizibile.
 ; echivalent cu clean-pipes.
 (define (clean-abilities abilities)
-	'your-code-here)
+   (filter (λ (visible-ability) 
+             (if (<= (posn-x (struct-ability-pos visible-ability)) 0) 
+                 #f
+                 #t)
+                 abilities)))
 
 
 ; Muta abilităţile vizibile spre stanga.
 ; echivalent cu move-pipes.
 (define (move-abilities abilities scroll-speed)
-	'your-code-here)
+  (map (λ (ability)
+        (let ((x (posn-x (struct-ability-pos ability)))
+              (y (posn-y (struct-ability-pos ability))))
+              (struct-copy struct-ability ability (pos (make-posn (- x scroll-speed) y)))))
+             abilities))
+
 
 
 ; Scurge timpul pentru abilităţile activate și le sterge pe cele care au expirat.
 ; Puteți să va folosiți de variabila globală fps.
-(define (time-counter abilities)
-	'your-code-here)
+(define (time-counter abilities) ;;abilities este lista abilitatilor active
+  (map (λ (ability) 
+          (if (< (- (struct-ability-time ability) (/ 0.1 fps)) 0)
+              #f ;adica se va sterge acea abilitate
+              (struct-ability (get-ability-image) (- (struct-ability-time ability) (/ 0.1 fps)) (get-ability-pos) (get-ability-next)))
+         abilities)))
 
 ; Generează următoarele abilitați vizibile.
 ; *Atentie* La orice moment pe scena trebuie să fie exact DISPLAYED_ABILITIES
@@ -480,7 +511,7 @@
 ; Folosiți funcția fill-abilities din abilities.rkt cât si cele scrise mai sus:
 ; move-abilities, clean-abilities, time-counter, etc..
 (define (next-abilities-visible visible scroll-speed)
-	'your-code-here)
+    (fill-abilities visible DISPLAYED_ABILITIES (clean-abilities (move-abilities visible scroll-speed))))
 
 ; Generează structura intermediară cu abilități.
 ; Observați ca nu există next-abilities-active aceastea sunt acele abilităti
@@ -488,7 +519,19 @@
 ; Puteti folosi `filer`/`filter-not` ca sa verificați ce abilităti au și abilitați
 ; nu au coliziuni cu pasărea sau puteti folosi `partition`
 (define (next-abilities abilities bird scroll-speed)
-	'your-code-here)
+  (append (next-abilities-visible abilities scroll-speed)
+   (filter (λ (ability) ;verifica coliziunea pasarii cu abilitatea 
+             (if (check-collision-rectangles
+                  (make-posn (struct-bird-x bird) (struct-bird-y bird))
+                  (make-posn (+ (struct-bird-x bird) bird-width) (+ (struct-bird-y bird) bird-height))
+                  (get-ability-pos ability)
+                  (make-posn (+ (posn-x (get-ability-pos ability)) (image-width (get-ability-image)))
+                             (+ (posn-y (get-ability-pos ability)) (image-height (get-ability-image))))) ;;coliziune
+                 #t
+                 #f))
+          abilities)))
+                  
+                                            
 
 ; Dând-use variabilele actuale și abilitațile calculați care vor
 ; variabile finale folosite în joc
@@ -496,13 +539,19 @@
 ; Atenție când apelați `next-variables` în next-state dați ca paremetru
 ; initial-variables și nu variabilele aflate deja în stare
 ; In felul acesta atunci când
+
+
 (define (next-variables variables abilities)
-  'your-code-here)
+  (map (λ (variable)
+          ((compose-abilities abilities) variable))
+          abilities))
 
 
 ; Folosind `place-image/place-images` va poziționa abilităţile vizibile la ability pos.
 (define (place-visible-abilities abilities scene)
-	'your-code-here)
+   (foldl (λ (ability rezP)
+           (place-image struct-ability-image (posn-x (get-ability-pos)) (posn-y (get-ability-pos)) rezP))
+           abilities scene))
 
 ; Folosind `place-image/place-images` va poziționa abilităţile active
 ; în partea de sus a ecranului lângă scor.
@@ -510,8 +559,11 @@
 ; de la ability-posn (constantă globală) cu spații de 50 de px.
 ; Imaginea cu indexul i va fi așezată la (ability-posn.x - 50*i, ability-posn.y)
 (define (place-active-abilities abilities scene)
-	'your-code-here)
-;my_state
+  (foldl (λ (ability rezP)
+            (place-image struct-ability-image (- (posn-x abilities-posn) (* 50 (index-of abilities ability))) (posn-y (abilities-posn)) rezP))
+           abilities scene))
+           
+
 (module+ main
 	(big-bang (get-initial-state)
 	 [on-tick next-state (/ 1.0 fps)]

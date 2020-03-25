@@ -8,6 +8,8 @@
 (provide get-ability-pos)
 (provide get-ability-next)
 
+(provide (struct-out struct-ability))
+
 (require "random.rkt")
 (require lang/posn)
 (require 2htdp/image)
@@ -26,11 +28,17 @@
   (make-pen "darkslategray" 5 "solid" "round" "round"))))
 
 
+(define-struct struct-ability (image time pos next) #:transparent)
+
 ; Fiecare funcție returneaza o componenta a unei abilități.
-(define (get-ability-image ability) 'your-code-here)
-(define (get-ability-time  ability) 'your-code-here)
-(define (get-ability-pos   ability) 'your-code-here)
-(define (get-ability-next  ability) 'your-code-here)
+(define (get-ability-image ability)
+  (struct-ability-image ability))
+(define (get-ability-time  ability)
+   (struct-ability-time ability))
+(define (get-ability-pos   ability)
+   (struct-ability-pos ability))
+(define (get-ability-next  ability)
+    (struct-ability-next ability))
 
 ; Returneaza o poziție aleatorie în POSITION_RANGE.
 (define (random-position range)
@@ -44,18 +52,29 @@
 ; una aletorie.
 ; Folosiți random-position
 (define (position-abilities abilities)
-	'your-code-here)
+  (map (λ (ability)
+          (if (= (get-ability-pos ability) null)
+              (struct-copy struct-ability ability [pos (random-position POSITION_RANGE)])
+              ability))
+         abilities))
 
 ; Fiecare abilitate are o funcție next care modifica stare jocului
 ; Compuneti toate funcțiile next în una singură
 ; Hint: compose
-(define (compose-abilities L)
-	'your-code-here)
+(define (compose-abilities L) ;L lista de abilitatati
+  (apply compose (map (λ(ability)
+                        (get-ability-next ability))
+                      L)))
 
 ; Primiște o listă de abilități inițiale, un număr n
 ; și o listă cu toate abilități posibile.
 ; Va adauga elemente aleatoare la lista inițială pană aceasta are lungimea n
 ; Atentie n poate fi chiar si 0 cand vrem sa jucam fara nicio abilitate.
 ; Folosiți choice-abilities.
+
 (define (fill-abilities initial n abilities)
-	'your-code-here)
+	(if (< (length initial) n)
+            (append initial (choice-abilities (- n (length initial)) abilities))
+            initial))
+            
+            
