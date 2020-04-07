@@ -37,7 +37,7 @@ Implementați, folosind obligatoriu list-comprehensions, lista tuturor numerelor
 
 --primeste un int si intoarce  valoarea radicalului convertita la intreg
 intsqrt :: Int -> Int
-intsqrt = round . sqrt . fromIntegral
+intsqrt val = round  $ sqrt  $  fromIntegral val
 
 primes :: Int -> [Int]
 primes 1 = []
@@ -94,7 +94,8 @@ http://zvon.org/other/haskell/Outputlist/group_f.html
 -}
 group2 :: Eq a => [a] -> [[a]]
 group2 [] = []
-group2  (x : xs) = (x : takeWhile (== x) xs) : group2 (dropWhile (== x) xs)
+group2  (x : xs) = (x : takeWhile (== x) xs)
+								: group2 (dropWhile (== x) xs)
 
 --takeWhile (cond) lista intoarce lista cu toate elementele care indeplinesc cond, pana la primul element care nu indeplineste cond
 --dropWhile intoarce lista cu toate elementele din lista initiala, situate dupa primul element care nu indeplineste cond
@@ -119,8 +120,9 @@ a grupa elementele egale în liste separate şi "sort" pentru a sorta o listă.
 -}
 --se sorteaza lista in ordine crescatoare, apoi se foloseste group2 pentru a forma o lista in care fiecare element este o lista cu elementele listei initiale, duplicate sau nu
 --group2(sort a) va fi o lista de liste in care cardinalul fiecarei liste este numarul de aparitii al elementului respectiv in lista initiala
+
 nrOcc :: Ord a => [a] -> [(a, Int)]
-nrOcc = map ( \lista -> ((head lista), (length lista))).group2.sort 
+nrOcc elemente = map ( \duplicate -> ((head duplicate), (length duplicate)))  $ group2  $ sort elemente
 
 -- Verificare: check5
 check5 :: TestPP ()
@@ -137,7 +139,7 @@ Hint: Ar putea fi utile funcţiile "concat" sau "++" pentru concatenarea cuvinte
 "unwords" pentru conversia unei propoziții la o listă de cuvinte si invers.
 -}
 dup :: String -> String
-dup = unwords . map (\cuvant  -> (++) cuvant (" " ++ cuvant)) . words
+dup  propozitie  =  unwords (map (\cuvant  -> (++) cuvant (" " ++ cuvant))  (words propozitie))
 
 -- Verificare: check6
 check6 :: TestPP ()

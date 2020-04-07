@@ -1,0 +1,2 @@
+#lang racket
+(λx.λy.(x + y) 1 2)

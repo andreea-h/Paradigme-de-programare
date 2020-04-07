@@ -1,0 +1,6 @@
+#lang racket
+;(λx.λy.(x + y) 1 2)
+(define ones-stream
+  (stream-cons 1 ones-stream))
+
+(stream-fist ones-stream)
