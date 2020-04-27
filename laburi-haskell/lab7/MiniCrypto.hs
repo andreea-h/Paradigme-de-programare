@@ -11,6 +11,13 @@ import Data.Bits
 import Data.Char
 import System.Random hiding (randoms)
 import TestPP
+
+--f = 4 (/) (+)
+--f = 4 . ((/).) . (+)
+--f = ((+).) .(4 /)
+f = ((4 /) . ) . (+)
+
+
 {-
 Testare:
 - Pentru a rula toate testele apelati functia check
@@ -41,9 +48,10 @@ test1 = testOne 1 $ testVal (take 42 $ myCycle xs) (take 42 $ cycle xs) "myCycle
   where xs = [1,2,3,4]
 myCycle :: [a] -> [a]
 
+
+myCycle = concat . repeat
 --myCycle a = a ++ myCycle a
 --myCyle a = (concat(repeat a))
-myCycle = concat . repeat
 
 {-
   2. (2p)
@@ -116,6 +124,7 @@ test4 = testOne 4 $ testVal (map wordToAlpha [0..255]) (take 256 $ cycle ['a'..'
 wordToAlpha :: Word8 -> Char
 wordToAlpha word8 = chr (ord 'a' + fromIntegral(mod word8 26))
 
+--26 este numarul de caractere din alfabetul englez
 --sau: =
 --chr( pos + ord 'a' )			
 --		where 
@@ -137,7 +146,7 @@ wordToAlpha word8 = chr (ord 'a' + fromIntegral(mod word8 26))
 test5 :: TestPP ()
 test5 = testOne 5 $ testVal (take 10 $ randomAlphaKey 42) "mkmdpmfobk" "randomAlphaKey" 1
 randomAlphaKey :: Int -> String
-randomAlphaKey = map wordToAlpha.randoms
+randomAlphaKey = map wordToAlpha . randoms
 
 
 {-
@@ -168,16 +177,22 @@ rot13Table = [('a','n'),('b','o'),('c','p'),('d','q'),('e','r'),
               ('u','h'),('v','i'),('w','j'),('x','k'),('y','l'),
               ('z','m')]   
 
---intoarce o functie de substitutie
+
 tableToFunc :: [(Char, Char)] -> Char -> Char
-tableToFunc asocieri = let 
-      
+tableToFunc cryptTable char = let  tabela_criptare = cryptTable 
+				   caracter_clar = char	
+		 		in snd (head (filter (\pair -> fst pair == caracter_clar) tabela_criptare))
+
+
+-- (filter (\pair -> fst pair == caracter_clar) tabela_criptare) intoarce lista formata din perechea care are caracterul-clar cel primit ca argument de functie
+--functia primita de filter primeste o pereche din cryTable si verifica daca acea pereche are primul element egal cu caracter-clar
+--intoarce o functie care asteapta un caracter -- functia primeste o tabla si un caractere-clar si va intoarce caracter-criptat
+
+
 --intoarce sirul de caractere criptat pe baza tabelei
 substCrypt :: [(Char, Char)] -> String -> String
-substCrypt = map . tableToFunc --aplica functia de substitutie pentru fiecare asociere din lista
-
-
-
+substCrypt = map . tableToFunc
+--aplica functia de substitutie pentru fiecare asociere (perechere) din lista
 
 
 {-

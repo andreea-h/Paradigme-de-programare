@@ -4,6 +4,18 @@ import Debug.Trace
 import TestPP
 import Data.Char
 
+f1 = filter odd . map (+1)
+f2 = map (+1) . filter odd
+f e list = e : list
+
+f11 = (.)
+h x = [x]
+g x = x + 3
+
+f3 x y = if (invert x) == (invert y)
+	then contents x
+	else contents y
+
 {-
 Pentru a rula întreaga suită de teste executați "runAllTests" din ghci.
 Pentru a rula doar testul pentru exercițiul X executați "checkX" din ghci.
