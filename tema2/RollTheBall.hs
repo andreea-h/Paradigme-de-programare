@@ -25,6 +25,10 @@ type Position = (Int, Int)
 {-
     Tip de date pentru reprezentarea celulelor tablei de joc
 -}
+
+--EmptySpace - celula neocupata
+--EmptyCell - celula care nu este ocupata cu nimic (celula goala)
+
 data Cell = EmptyCell | HorPipe | VerPipe | TopLeft | BotLeft | BotRight | TopRight | EmptySpace | 
 		    StartUp | StartDown | StartLeft | StartRight | WinUp | WinDown |
 		  	WinLeft | WinRight 
@@ -32,26 +36,42 @@ data Cell = EmptyCell | HorPipe | VerPipe | TopLeft | BotLeft | BotRight | TopRi
 
 
 charToCell :: Char -> Cell
-charToCell cell = if cell == verPipe then VerPipe else HorPipe
+charToCell cell 
+	| cell == emptyCell = EmptyCell
+	| cell == horPipe = HorPipe
+	| cell == verPipe = VerPipe
+	| cell == topLeft = TopLeft
+	| cell == botLeft = BotLeft
+	| cell == botRight = BotRight
+	| cell == topRight = TopRight
+	| cell == emptySpace = EmptySpace
+	| cell == startUp = StartUp
+	| cell == startDown = StartDown
+	| cell == startLeft = StartLeft
+	| cell == startRight = StartRight
+	| cell == winUp = WinUp
+	| cell == winDown = WinDown
+	| cell == winLeft = WinLeft
+	| otherwise = WinRight	
 
 instance Show Cell 
 	where show my_cell 
-		| my_cell == EmptyCell = show [emptySpace]
-		| my_cell == HorPipe = show [horPipe]
-		| my_cell == VerPipe = show [verPipe]
-		| my_cell == TopLeft = show [topLeft]
-		| my_cell == BotLeft = show [botLeft]
-		| my_cell == BotRight = show [botRight]
-		| my_cell == TopRight = show [topRight]
-		| my_cell == EmptySpace = show [emptySpace]
-		| my_cell == StartUp = show [startUp]
-		| my_cell == StartDown = show [startDown]
-		| my_cell == StartLeft = show [startLeft]
-		| my_cell == StartRight = show [startRight]
-		| my_cell == WinUp = show [winUp]
-		| my_cell == WinDown = show [winDown]
-		| my_cell == WinLeft = show [winLeft]
-		| my_cell == WinRight = show [winRight]
+		| my_cell == EmptyCell = [emptyCell]
+		| my_cell == HorPipe =  [horPipe]
+		| my_cell == VerPipe =  [verPipe]
+		| my_cell == TopLeft = [topLeft]
+		| my_cell == BotLeft =  [botLeft]
+		| my_cell == BotRight =  [botRight]
+		| my_cell == TopRight = [topRight]
+		| my_cell == EmptySpace = [emptySpace]
+		| my_cell == StartUp = [startUp]
+		| my_cell == StartDown =  [startDown]
+		| my_cell == StartLeft =  [startLeft]
+		| my_cell == StartRight =  [startRight]
+		| my_cell == WinUp =  [winUp]
+		| my_cell == WinDown =  [winDown]
+		| my_cell == WinLeft =  [winLeft]
+		| my_cell == WinRight =  [winRight]
 
 
 {-
@@ -92,19 +112,20 @@ data Level = EmptyLevel | LvlConst {
 
 --afiseaza o linie din matrice formata dintr-un vector de celule
 printLine :: Show a => [a] -> String
-printLine cell_line = (foldl (\res el -> res ++ (show el)) [endl] cell_line) ++ [endl]
+printLine cell_line = foldl (\res el -> res ++ (show el)) [endl] cell_line
 
 --preia ca parametri matricea si o linie si intoarce o lista continand celulele de pe acea linie
 --este folosita pt a putea reprezinta printr-o lista elementele de pe fiecare linie a matricei
 getLineCells :: Level -> Int -> [Cell]
-getLineCells (LvlConst highterLeft lowerRight table) line = [table T.! pos | pos <- (generatePairsX line (fst lowerRight))]
+getLineCells (LvlConst highterLeft lowerRight table) line = [table T.! pos | pos <- (generatePairsX line (snd lowerRight))]
 
 
 instance Show Level 
     where show EmptyLevel = ""
-	  show (LvlConst highterLeft lowerRight table) = printed_table 
-		where printed_table = concatMap printLine
-			[getLineCells (LvlConst highterLeft lowerRight table) line | line <- [0..(snd lowerRight)]]
+	  	  show (LvlConst highterLeft lowerRight table) = printed_table 
+		where printed_table = (concatMap printLine
+			[getLineCells (LvlConst highterLeft lowerRight table) line 
+				| line <- [0..(fst lowerRight)]]) ++ [endl]
 
 	
 
@@ -120,7 +141,7 @@ generatePairsX x y = [(i, j) | j <- [0..y], i <- [x]]
 
 emptyLevel :: Position -> Level
 emptyLevel pos = LvlConst (0,0) pos (T.array ((0,0), pos) [(position, cell) | 
-			position <- (generatePairs (snd pos) (fst pos)), cell <- [EmptyCell]])
+			position <- (generatePairs (fst pos) (snd pos)), cell <- [EmptySpace]])
 
 {-
     *** TODO ***
@@ -140,17 +161,36 @@ emptyLevel pos = LvlConst (0,0) pos (T.array ((0,0), pos) [(position, cell) |
 --in caz afirmativ, intoarce True
 checkAvailable :: Level -> Position -> Bool
 checkAvailable EmptyLevel pos = True
-checkAvailable (LvlConst highterLeft lowerRight table) pos = (table T.! pos) == EmptyCell
+checkAvailable (LvlConst highterLeft lowerRight table) pos =
+	--case (((fst pos) > (fst lowerRight)) || ((snd pos) > (snd lowerRight))) of 
+	--False -> False
+	 (table T.! pos) == EmptySpace
+	
+
+
+--primeste ca argumente un level si 2 coordonate si verifica ca coordonatele sa nu fie in afara matricei
+checkBounds :: Level -> Position -> Bool
+checkBounds (LvlConst highterLeft lowerRight table) pos 
+	| (fst pos) > nr_lines = False
+	| (snd pos) > nr_columns = False
+	| (fst pos) < 0 = False
+	| (snd pos) < 0 = False
+	| otherwise = True
+	where
+		nr_lines = fst lowerRight
+		nr_columns = snd lowerRight
+	
 
 
 addCell :: (Char, Position) -> Level -> Level
-addCell (my_cell, pos) EmptyLevel = case pos == (0, 0) of
-	True -> (LvlConst (0, 0) (0, 0) (T.array ((0, 0),(0, 0)) [((0, 0), charToCell my_cell)]))
-	False -> EmptyLevel
+addCell (my_cell, pos) EmptyLevel = LvlConst (0, 0) pos ((T.array ((0, 0), pos) 
+ [(position, cell) | position <- (generatePairs (fst pos) (snd pos)), cell <- [EmptySpace]]) T.// [(pos, (charToCell my_cell))])
+
 addCell (my_cell, pos) (LvlConst highterLeft lowerRight table) = 
-	case checkAvailable (LvlConst highterLeft lowerRight table) pos of
-		True  -> (LvlConst highterLeft lowerRight (table T.// [(pos, (charToCell my_cell))]))
-		False -> (LvlConst highterLeft lowerRight table)
+	if ((checkBounds (LvlConst highterLeft lowerRight table) pos) == True)
+		&& ((checkAvailable (LvlConst highterLeft lowerRight table) pos) == True) 
+		then (LvlConst highterLeft lowerRight (table T.// [(pos, (charToCell my_cell))]))
+		else (LvlConst highterLeft lowerRight table)
 		
 
 
@@ -166,7 +206,7 @@ addCell (my_cell, pos) (LvlConst highterLeft lowerRight table) =
 -}
  
 createLevel :: Position -> [(Char, Position)] -> Level
-createLevel = undefined
+createLevel right_corner list = 
 
 
 {-
