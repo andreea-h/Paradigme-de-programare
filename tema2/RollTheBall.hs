@@ -307,8 +307,53 @@ moveCell position direction level
     ex: connection botLeft horPipe East = True (╚═)
         connection horPipe botLeft East = False (═╚)
 -}
+
+--functie care intoarce o lista cu toate coordonatele de pe tabla
+getAllPositions :: Level -> [Position]
+getAllPositions (LvlConst highterLeft lowerRight table) = generatePairs (fst lowerRight) (snd lowerRight)
+
+
+--intoarce pozitia pe tabla a celului de start(o celula din startCells)
+getStartPos :: Level -> [Position] -> Position
+getStartPos level positions 
+	| isStartCell current_pos level == True = current_pos
+	| otherwise = getStartPos level (tail positions) 
+	where current_pos = head positions
+
+--intoarce pozitia pe tabla a celului de win(o celula din winningCells)
+getEndPos :: Level -> [Position] -> Position
+getEndPos level positions 
+	| isEndCell current_pos level == True = current_pos
+	| otherwise = getEndPos level (tail positions) 
+	where current_pos = head positions
+
+--functie care primeste o celula si intoarce o lista de formata din alte 4 liste 
+--fiecare lista din lista returnata contine celule cu care se poate conecta celula data pe fiecare din cele 4 directii
+--EmptySpace -> nu exista celula care se poate conecta in acea directie
+--[[N], [S], [W], [E]]
+getCompatibleCells :: Cell -> [[Cell]]
+getCompatibleCells cell 
+	| cell == HorPipe = [[EmptySpace], [EmptySpace], [HorPipe, TopLeft], [HorPipe, TopRight]]
+	| cell == VerPipe = [[VerPipe, TopLeft, TopRight], [VerPipe, BotLeft], [EmptySpace], [EmptySpace]]
+	| cell == TopLeft = [[EmptySpace], [VerPipe, BotLeft, BotRight], [EmptySpace], [HorPipe, TopRight, BotRight]]
+	| cell == BotLeft = [[VerPipe, TopRight, HorPipe], [EmptySpace], [EmptySpace], [HorPipe, BotRight, TopRight]]
+	| cell == TopRight = [[EmptySpace], [VerPipe, BotLeft, BotRight], [HorPipe, TopLeft], [EmptySpace]]
+	| cell == BotRight = [[VerPipe, TopLeft, TopRight], [EmptySpace], [HorPipe, TopLeft], [EmptySpace]]
+	| otherwise = [[EmptySpace], [EmptySpace], [EmptySpace], [EmptySpace]]
+
+--primeste o directie si o celula si returneaza lista cu pipeurile care se pot conecta in directia data
+getCompDirection :: Cell -> Directions-> [Cell]
+getCompDirection cell dir 
+	| dir == North = head (getCompatibleCells cell)
+	| dir == South = head (tail (getCompatibleCells cell))
+	| dir == West = head (tail (tail (getCompatibleCells cell)))
+	| dir == East = head (tail (tail (tail (getCompatibleCells cell))))
+
 connection :: Cell -> Cell -> Directions -> Bool
-connection = undefined
+connection cell1 cell2 direction
+	| cell2 `elem` getCompDirection cell1 direction  = True
+	| otherwise = False
+
 
 {-
     *** TODO ***
@@ -318,10 +363,62 @@ connection = undefined
     de tip inițial la cea de tip final.
     Este folosită în cadrul Interactive.
 -}
+
+--functie care intoarce directia in care pozitia de start asteapta o conectivitate
+--primeste tabla de joc
+getStartDirection :: Level -> Directions
+getStartDirection level
+	| start_cell == StartUp = North
+	| start_cell == StartDown = South
+	| start_cell == StartLeft = West
+	| start_cell == StartRight = East
+	where start_cell = getCellFromPos level (getStartPos level (getAllPositions level)) --celula de start(tip Cell)
+
+getEndDirection :: Level -> Directions
+getEndDirection level
+	| end_cell == WinUp = North
+	| end_cell == WinDown = South
+	| end_cell == WinLeft = West
+	| end_cell == WinRight = East
+	where end_cell = getCellFromPos level (getEndPos level (getAllPositions level)) --celula de win(tip Cell)
+
+
 wonLevel :: Level -> Bool
-wonLevel = undefined
+wonLevel level 
+--primele trei verificari valideaza ca celula care se conecteaza direct cu start sau end sa fie un pipe
+--in aceste trei cazuri, se intoarce False daca celula conectata cu start\end nu este un pipe
+	| getNeighbour start_pos start_direction level == EmptyCell = False
+	| getNeighbour start_pos start_direction level == EmptySpace = False
+	| getNeighbour end_pos end_direction level == EmptySpace = False
+	| getNeighbour end_pos end_direction level == EmptyCell = False
+	| otherwise = checkPipesTunnel start_pipe level
+
+	where 
+		start_direction = getStartDirection level --directia de start(data prin celula de start)
+		start_pos = getStartPos level (getAllPositions level)
+		end_direction = getEndDirection level --directia de start(data prin celula de start)
+		end_pos = getEndPos level (getAllPositions level)
+		start_pipe = get
+
+
+
+		  --win = getEndPos level (getAllPositions level)
 
 instance ProblemState Level (Position, Directions) where
     successors = undefined
     isGoal = undefined
     reverseAction = undefined
+
+
+
+
+
+
+
+
+
+
+
+
+
+
