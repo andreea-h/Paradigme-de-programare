@@ -255,7 +255,7 @@ getNeighbour pos direction (LvlConst highterLeft lowerRight table)
 	| direction == North = (table T.! (((fst pos) - 1), (snd pos)))
 	| direction == South = (table T.! (((fst pos) + 1), (snd pos)))
 	| direction == West = (table T.! ((fst pos), ((snd pos) - 1)))
-	| direction == West = (table T.! ((fst pos), ((snd pos) + 1)))
+	| direction == East = (table T.! ((fst pos), ((snd pos) + 1)))
 
 --functie care intoarce pozitia (tip Position) pe care se doreste mutarea unei celule
 getNextPos :: Position -> Directions -> Position
@@ -263,19 +263,38 @@ getNextPos pos direction
 	| direction == North = (((fst pos) - 1), (snd pos))
 	| direction == South = (((fst pos) + 1), (snd pos))
 	| direction == West = ((fst pos), ((snd pos) - 1))
-	| direction == West = ((fst pos), ((snd pos) + 1))
+	| direction == East = ((fst pos), ((snd pos) + 1))
 
 
 --functie care primeste un level si intoarce Celula (sub forma tipului Cell) de la o anumita pozitie din matrice
 getCellFromPos :: Level -> Position -> Cell
 getCellFromPos (LvlConst highterLeft lowerRight table) pos = (table T.! pos)
 
+--functie care primeste un level, o pozitie si o celula si inlocuieste elementul de la acea pozitie cu o anumita valoare
+changeCell :: Position -> Cell -> Level -> Level
+changeCell pos my_cell (LvlConst highterLeft lowerRight table) = (LvlConst highterLeft lowerRight (table T.// [(pos, my_cell)]))
+
+--urmatoarele 2 functii intorc true/false daca celula data prin pozitie este sau nu celula de start, respectiv celula de end
+isStartCell :: Position -> Level -> Bool
+isStartCell pos level 
+	| (cellToChar (getCellFromPos level pos)) `elem` startCells = True
+	| otherwise = False
+
+isEndCell :: Position -> Level -> Bool
+isEndCell pos level 
+	| (cellToChar (getCellFromPos level pos)) `elem` winningCells = True
+	| otherwise = False
+
+
+
 --verifica daca se poate face mutarea unei celule de la o pozitie data, intr-o anumita directie
 moveCell :: Position -> Directions -> Level -> Level
 moveCell position direction level 
+	| (isStartCell position level) == True = level
+	| (isEndCell position level) == True = level
 	| (checkNextPos position direction level) == False = level --pozitia pe care s-at muta iese din matrice
 	| (getNeighbour position direction level) /= EmptySpace = level --pozitia pe care vrea sa se mute nu este libera
-	| otherwise = addCell (emptySpace, position) (addCell ((cellToChar (getCellFromPos level position)), dest_pos) level)
+	| otherwise = (changeCell position EmptySpace (addCell ((cellToChar (getCellFromPos level position)), dest_pos) level))
 	where dest_pos = getNextPos position direction
 
 {-
