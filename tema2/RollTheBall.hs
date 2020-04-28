@@ -54,6 +54,26 @@ charToCell cell
 	| cell == winLeft = WinLeft
 	| otherwise = WinRight	
 
+cellToChar :: Cell -> Char
+cellToChar cell 
+	| cell == EmptyCell = emptyCell
+	| cell == HorPipe = horPipe
+	| cell == VerPipe = verPipe
+	| cell == TopLeft = topLeft
+	| cell == BotLeft = botLeft
+	| cell == BotRight = botRight
+	| cell == TopRight = topRight
+	| cell == EmptySpace = emptySpace
+	| cell == StartUp = startUp
+	| cell == StartDown = startDown
+	| cell == StartLeft = startLeft
+	| cell == StartRight = startRight
+	| cell == WinUp = winUp
+	| cell == WinDown = winDown
+	| cell == WinLeft = winLeft
+	| otherwise = winRight	
+
+
 instance Show Cell 
 	where show my_cell 
 		| my_cell == EmptyCell = [emptyCell]
@@ -122,7 +142,7 @@ getLineCells (LvlConst highterLeft lowerRight table) line = [table T.! pos | pos
 
 instance Show Level 
     where show EmptyLevel = ""
-	  	  show (LvlConst highterLeft lowerRight table) = printed_table 
+	  show (LvlConst highterLeft lowerRight table) = printed_table 
 		where printed_table = (concatMap printLine
 			[getLineCells (LvlConst highterLeft lowerRight table) line 
 				| line <- [0..(fst lowerRight)]]) ++ [endl]
@@ -206,7 +226,7 @@ addCell (my_cell, pos) (LvlConst highterLeft lowerRight table) =
 -}
  
 createLevel :: Position -> [(Char, Position)] -> Level
-createLevel right_corner list = 
+createLevel right_corner list = foldr (\pair level -> addCell pair level) (emptyLevel right_corner) list
 
 
 {-
@@ -219,8 +239,44 @@ createLevel right_corner list =
     Hint: Dacă nu se poate face mutarea puteți lăsa nivelul neschimbat.
 -}
 
+--functie care intoarce true/false daca celula ar putea fi mutata intr-o anumita directie 
+--aici nu se valideaza mutarea, doar se verifica faptul ca pozitia pe care s-ar face mutarea este una care nu iese din matrice
+checkNextPos :: Position -> Directions -> Level -> Bool
+checkNextPos pos direction (LvlConst highterLeft lowerRight table)
+	| (direction == North && ((fst pos) - 1) < 0) = False
+	| (direction == South && ((fst pos) + 1) > (fst lowerRight)) = False
+	| (direction == West && ((snd pos) - 1) < 0) = False
+	| (direction == East && ((snd pos) + 1) > (snd lowerRight)) = False
+	| otherwise = True
+
+--intoarce valoarea acelei celule aflata pe directia indicata, langa celula cu pozitia data
+getNeighbour :: Position -> Directions -> Level -> Cell
+getNeighbour pos direction (LvlConst highterLeft lowerRight table)
+	| direction == North = (table T.! (((fst pos) - 1), (snd pos)))
+	| direction == South = (table T.! (((fst pos) + 1), (snd pos)))
+	| direction == West = (table T.! ((fst pos), ((snd pos) - 1)))
+	| direction == West = (table T.! ((fst pos), ((snd pos) + 1)))
+
+--functie care intoarce pozitia (tip Position) pe care se doreste mutarea unei celule
+getNextPos :: Position -> Directions -> Position
+getNextPos pos direction
+	| direction == North = (((fst pos) - 1), (snd pos))
+	| direction == South = (((fst pos) + 1), (snd pos))
+	| direction == West = ((fst pos), ((snd pos) - 1))
+	| direction == West = ((fst pos), ((snd pos) + 1))
+
+
+--functie care primeste un level si intoarce Celula (sub forma tipului Cell) de la o anumita pozitie din matrice
+getCellFromPos :: Level -> Position -> Cell
+getCellFromPos (LvlConst highterLeft lowerRight table) pos = (table T.! pos)
+
+--verifica daca se poate face mutarea unei celule de la o pozitie data, intr-o anumita directie
 moveCell :: Position -> Directions -> Level -> Level
-moveCell = undefined
+moveCell position direction level 
+	| (checkNextPos position direction level) == False = level --pozitia pe care s-at muta iese din matrice
+	| (getNeighbour position direction level) /= EmptySpace = level --pozitia pe care vrea sa se mute nu este libera
+	| otherwise = addCell (emptySpace, position) (addCell ((cellToChar (getCellFromPos level position)), dest_pos) level)
+	where dest_pos = getNextPos position direction
 
 {-
     *** HELPER ***
