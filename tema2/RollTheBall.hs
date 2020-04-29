@@ -336,7 +336,7 @@ getEndPos level positions
 --[[N], [S], [W], [E]]
 getCompatibleCells :: Cell -> [[Cell]]
 getCompatibleCells cell 
-	| cell == HorPipe = [[], [], [HorPipe, TopLeft, WinRight], [HorPipe, TopRight, WinLeft]]
+	| cell == HorPipe = [[], [], [HorPipe, TopLeft, WinRight], [HorPipe, TopRight, WinLeft, BotRight]]
 	| cell == VerPipe = [[VerPipe, TopLeft, TopRight, WinDown], [VerPipe, BotLeft, WinUp, BotRight], [], []]
 	| cell == TopLeft = [[WinDown], [VerPipe, BotLeft, BotRight, WinUp], [], [HorPipe, TopRight, BotRight]]
 	| cell == BotLeft = [[VerPipe, TopRight, HorPipe, WinDown], [], [], [HorPipe, BotRight, TopRight, WinLeft]]
