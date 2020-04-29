@@ -22,8 +22,8 @@ import TestPP
 valsInt = [20, 100, 30, 500, 1000, 30023, 513]
 valsStr = ["PP", "PA", "PC", "AA", "LFA", "IA", "ML"]
 prios = [5, 2, 10, -3, 1, 20]
-elemsInt = zip prios valsInt
-elemsStr = zip prios valsStr
+elemsInt = zip prios valsInt --[(5,20),(2,100),(10,30),(-3,500),(1,1000),(20,30023)]
+elemsStr = zip prios valsStr --[(5,"PP"),(2,"PA"),(10,"PC"),(-3,"AA"),(1,"LFA"),(20,"IA")]
 
 -- Considerăm că un element din coadă este reprezentat de un tuplu care va conține:
 -- * prioritatea
@@ -61,13 +61,22 @@ class (Ord a) => PQueue pq a where
     -- Creează o coadă de priorități dintr-o lista de tupluri
     -- Elementele vor fi adăugate în ordine inversă (de la finalul spre începutul listei)
     fromList :: [(Prio, a)] -> pq a
-    fromList = undefined
+    fromList my_queue = foldr insert empty my_queue
 
+
+--fromJust :: Maybe a -> a
+--utilizare fromJust: fromJust (Just 1) afiseaza 1
+--fromJust aplicat (fromJust Nothing) intoarce un o eroare
     toList :: pq a -> [(Prio, a)]
-    toList = undefined
+    toList queue = case isEmpty queue of
+		True -> []
+		False -> (fromJust (top queue)) : (toList (pop queue))
 
     size :: pq a -> Int
-    size = undefined -- Pentru Ex 6
+    size queue = case isEmpty queue of
+		True -> 0
+		False -> length (toList queue)
+
 
 test1OK = False
 
@@ -83,18 +92,39 @@ check1 = test 1 $ testManually "Priority Queue Class" 1.5 test1OK -- 1.5p
     listă de elemente. Includeți ListPQ în clasa PQueue.
 -}
 
-newtype ListPQ a = LPQ a deriving Show
+--fiecare element dintr-o lista LPQ este un tuplu (prioritate, valoare)
 
+newtype ListPQ a = LPQ [(Prio, a)] deriving Show
+
+--in continuare este folosit, ca si constructor de tip, LPQ
+
+--este inclus PQueue ListPQ in clasa Ord
 instance (Ord a) => PQueue ListPQ a where
-    empty = undefined
+    empty = LPQ []
 
-    insert = undefined
+--daca tuplul pe care vrem sa il inseram are prioritatea mai mica decat prioritatea primului element din coada, tuplul este inserat recursiv  
+--daca tuplul are prioritatea mai mare, este inserat pe prima pozitie in coada
+    insert tuplu (LPQ queue) 
+		| (queue == []) = LPQ (tuplu : [])
+		| (fst tuplu) <= my_first = LPQ ([head queue] ++ toList (insert tuplu (queue_rest)))
+		| otherwise = LPQ ([tuplu] ++ queue)
+		where 
+			queue_rest = LPQ (tail queue)
+			my_first = fst (head queue) --prior. pentru primul element din coada
 
-    top = undefined
+    top (LPQ tuplu_list) = case isEmpty (LPQ tuplu_list) of
+		 False -> Just my_first
+		 True -> Nothing
+		where 
+			my_first = head tuplu_list
 
-    pop = undefined
+    pop (LPQ tuplu_list)
+		| (tuplu_list == []) = empty
+		| otherwise = (LPQ (tail tuplu_list))
 
-    isEmpty = undefined
+    isEmpty (LPQ tuplu_list) = case (tuplu_list == []) of 
+		True -> True
+		_ -> False
 
 -- Test 2
 
@@ -151,11 +181,20 @@ data LeftistPQ a = Empty { rank :: Rank } |
 -}
 
 merge :: LeftistPQ a -> LeftistPQ a -> LeftistPQ a
-merge = undefined
+--daca unul dintre noduri este Empty
+merge queue (Empty rank) = queue
+merge (Empty rank) queue = queue
+merge (Node fst_rank fst_value fst_left_queue fst_right_queue) (Node snd_rank snd_value snd_left_queue snd_right_queue) 
+	    --situatia in care nodul al doilea devine nodul radacina a.i. subarborele stang sa aiba mereu rangul 
+		--mai mare sau egal cu rangul subarborelui dreapta
+		|max_prior == fst snd_value = merge (Node snd_rank snd_value snd_left_queue snd_right_queue)
+						 (Node fst_rank fst_value fst_left_queue fst_right_queue) 
+     
+			where max_prior = max (fst fst_value) (fst snd_value) -- determina maximul prioritatilor radacinilor
 
 inorder :: LeftistPQ a -> [(Prio, a)]
-inorder = undefined
-
+inorder (Empty rank) = []
+inorder (Node rank value pq_left pq_right) = (inorder pq_left) ++ (value : []) ++ (inorder pq_right)
 -- Test 3
 
 check3 :: TestData

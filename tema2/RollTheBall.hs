@@ -268,7 +268,10 @@ getNextPos pos direction
 
 --functie care primeste un level si intoarce Celula (sub forma tipului Cell) de la o anumita pozitie din matrice
 getCellFromPos :: Level -> Position -> Cell
-getCellFromPos (LvlConst highterLeft lowerRight table) pos = (table T.! pos)
+getCellFromPos (LvlConst highterLeft lowerRight table) pos 
+	| (((fst pos) > (fst lowerRight)) || ((snd pos) > (snd lowerRight))) = EmptyCell
+	| (((fst pos) < 0) || ((snd pos) < 0)) = EmptyCell
+	| otherwise = (table T.! pos)
 
 --functie care primeste un level, o pozitie si o celula si inlocuieste elementul de la acea pozitie cu o anumita valoare
 changeCell :: Position -> Cell -> Level -> Level
@@ -333,13 +336,17 @@ getEndPos level positions
 --[[N], [S], [W], [E]]
 getCompatibleCells :: Cell -> [[Cell]]
 getCompatibleCells cell 
-	| cell == HorPipe = [[EmptySpace], [EmptySpace], [HorPipe, TopLeft], [HorPipe, TopRight]]
-	| cell == VerPipe = [[VerPipe, TopLeft, TopRight], [VerPipe, BotLeft], [EmptySpace], [EmptySpace]]
-	| cell == TopLeft = [[EmptySpace], [VerPipe, BotLeft, BotRight], [EmptySpace], [HorPipe, TopRight, BotRight]]
-	| cell == BotLeft = [[VerPipe, TopRight, HorPipe], [EmptySpace], [EmptySpace], [HorPipe, BotRight, TopRight]]
-	| cell == TopRight = [[EmptySpace], [VerPipe, BotLeft, BotRight], [HorPipe, TopLeft], [EmptySpace]]
-	| cell == BotRight = [[VerPipe, TopLeft, TopRight], [EmptySpace], [HorPipe, TopLeft], [EmptySpace]]
-	| otherwise = [[EmptySpace], [EmptySpace], [EmptySpace], [EmptySpace]]
+	| cell == HorPipe = [[], [], [HorPipe, TopLeft, WinRight], [HorPipe, TopRight, WinLeft]]
+	| cell == VerPipe = [[VerPipe, TopLeft, TopRight, WinDown], [VerPipe, BotLeft, WinUp, BotRight], [], []]
+	| cell == TopLeft = [[WinDown], [VerPipe, BotLeft, BotRight, WinUp], [], [HorPipe, TopRight, BotRight]]
+	| cell == BotLeft = [[VerPipe, TopRight, HorPipe, WinDown], [], [], [HorPipe, BotRight, TopRight, WinLeft]]
+	| cell == TopRight = [[], [VerPipe, BotLeft, BotRight, WinUp], [HorPipe, TopLeft, WinRight], []]
+	| cell == BotRight = [[VerPipe, TopLeft, TopRight, WinDown], [], [HorPipe, TopLeft, WinRight, BotLeft], []]
+	| cell == StartUp = [[VerPipe, TopRight, TopLeft], [], [], []]
+	| cell == StartDown = [[], [VerPipe, TopRight, TopLeft],[], []]
+	| cell == StartLeft = [[], [], [HorPipe, TopLeft, BotLeft], []]
+	| cell == StartRight = [[], [], [], [HorPipe, TopRight, BotRight]]
+	| otherwise = [[], [], [], []]
 
 --primeste o directie si o celula si returneaza lista cu pipeurile care se pot conecta in directia data
 getCompDirection :: Cell -> Directions-> [Cell]
@@ -382,6 +389,38 @@ getEndDirection level
 	| end_cell == WinRight = East
 	where end_cell = getCellFromPos level (getEndPos level (getAllPositions level)) --celula de win(tip Cell)
 
+--primeste o celula si directia de conectare a ei cu celula precedenta 
+--intoarce celula cu care se va conecta si directia de conectare asociata
+nextCell :: (Position, Position) -> Level -> Position
+nextCell (pos, old_pos) level  
+--se verifica pe rand vecinii celului curente
+	| ((connection current_cell cell_South South) && (old_pos /= pos_South)) = pos_South
+	| (((snd pos) - 1 >= 0) && (connection current_cell cell_West West) && (old_pos /= pos_West)) = pos_West
+	| (((fst pos) - 1 >= 0) && (connection current_cell cell_North North) && (old_pos /= pos_North)) = pos_North
+	| ((connection current_cell cell_East East) && (old_pos /= pos_East)) = pos_East
+	| otherwise = (-1, -1)
+	where 
+		current_cell = getCellFromPos level pos
+		cell_North = getCellFromPos level ((fst pos) - 1, snd pos) 
+		cell_South = getCellFromPos level ((fst pos) + 1, snd pos) 
+		cell_East = getCellFromPos level ((fst pos), (snd pos) + 1) 
+		cell_West = getCellFromPos level ((fst pos), (snd pos) - 1) 
+		pos_South = ((fst pos) + 1, snd pos)
+		pos_West = (fst pos, (snd pos) - 1)
+		pos_North = ((fst pos) - 1, snd pos)
+		pos_East = (fst pos, (snd pos) + 1)
+	
+{-	| ((direction == West) && (connection current_cell cell_West West)) = ((fst pos, (snd pos) - 1), West)
+	| ((direction == East) && (connection current_cell cell_East East)) = ((fst pos, (snd pos) + 1), East)
+	| otherwise = ((-1, -1), West) -}
+
+--primeste ca parametri o celula(un pipe) si intoarce recursiv urmatoarea celula de pe tabela, vecina cu celula primita, care se poate conecta cu aceasta, pana cand celula obtinuta este de tipul Win sau nu este un pipe
+checkPipesTunnel :: (Position, Position) -> Level -> Bool
+checkPipesTunnel (cell_pos, old_pos) level 
+	| isEndCell cell_pos level = True 
+	| cell_pos == (-1, -1) = False
+	| otherwise = checkPipesTunnel ((nextCell (cell_pos, old_pos) level), cell_pos) level
+
 
 wonLevel :: Level -> Bool
 wonLevel level 
@@ -391,18 +430,17 @@ wonLevel level
 	| getNeighbour start_pos start_direction level == EmptySpace = False
 	| getNeighbour end_pos end_direction level == EmptySpace = False
 	| getNeighbour end_pos end_direction level == EmptyCell = False
-	| otherwise = checkPipesTunnel start_pipe level
+	| otherwise = checkPipesTunnel ((getNextPos start_pos start_direction), start_pos) level
 
 	where 
 		start_direction = getStartDirection level --directia de start(data prin celula de start)
 		start_pos = getStartPos level (getAllPositions level)
 		end_direction = getEndDirection level --directia de start(data prin celula de start)
 		end_pos = getEndPos level (getAllPositions level)
-		start_pipe = get
+		start_pipe_pos = getNeighbour start_pos start_direction level --pipe-ul vecin lui startCell in directia in care se poate face o conexiune
 
 
 
-		  --win = getEndPos level (getAllPositions level)
 
 instance ProblemState Level (Position, Directions) where
     successors = undefined
