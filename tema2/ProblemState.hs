@@ -20,13 +20,14 @@ class ProblemState s a | s -> a where
         Pentru starea curentă, furnizează lista perechilor
         (acțiune, stare următoare).
     -}
-
+--ia o stare a jocului si intoarce o lista de vecini in pereche cu actiunea care a condus la acea stare
+-- (adica o lista cu toate starile in care se poate ajunge cu o singura miscare)
     successors :: s -> [(a, s)]
 
     {-
         Întoarce `True` dacă starea curentă este finală.
     -}
-
+--starea curenta este castigatoare (wonLevel)
     isGoal :: s -> Bool
     {-
         Primește un tuplu (a1, s1) pentru a reveni

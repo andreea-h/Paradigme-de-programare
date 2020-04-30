@@ -440,18 +440,44 @@ wonLevel level
 		start_pipe_pos = getNeighbour start_pos start_direction level --pipe-ul vecin lui startCell in directia in care se poate face o conexiune
 
 
-
-
+--instanta a clasei ProblemState avand tipurile Level si (Position, Direction)
 instance ProblemState Level (Position, Directions) where
-    successors = undefined
-    isGoal = undefined
+	--va returna o lista de perechi de tipul ((pos, dir), another_state)
+	--fiecare stare another_state este echivalenta cu a face o singura mutate in nivelul curent
+	--adica se ava aplica (moveCell pos dir level) pentru fiecare celula, in fiecare directie 
+	--rezultatul intoars de moveCell este adaugat in vectorul final daca starea another_state difera de cea curenta
+	--se aplica asta pe o lista care contine toate pozitiile din level
+    successors level = (filter (diffFunction level) (map function ((generateInput level North)))) ++
+					   (filter (diffFunction level) (map function ((generateInput level South)))) ++
+ 					   (filter (diffFunction level) (map function ((generateInput level West)))) ++
+					   (filter (diffFunction level) (map function ((generateInput level East))))
+	where function = ((\(position, level, direction) -> ((position, direction), (moveCell position direction level))))
+		  
+		
+
+
+   -- isGoal EmptyLevel = Bool
+ --	isGoal level = wonLevel level
+
+
     reverseAction = undefined
 
+--tipul starii este un level
+--tipul actiunii: (pozitie de pe tabla, directie)
+
+getLevel :: ((Position, Directions), Level) -> Level
+getLevel pair = snd pair
 
 
+--intoarce true daca level-urile sunt diferite
+diffFunction :: Level -> ((Position, Directions), Level) -> Bool
+diffFunction level1 pair = level1 /= (snd pair)
 
 
-
+generateInput :: Level -> Directions -> [(Position, Level, Directions)]
+generateInput level direction= [(elem, level, direction) | elem <- pos]
+	where
+		pos = getAllPositions level
 
 
 
