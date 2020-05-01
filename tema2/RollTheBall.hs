@@ -451,13 +451,14 @@ instance ProblemState Level (Position, Directions) where
 					   (filter (diffFunction level) (map function ((generateInput level South)))) ++
  					   (filter (diffFunction level) (map function ((generateInput level West)))) ++
 					   (filter (diffFunction level) (map function ((generateInput level East))))
-	where function = ((\(position, level, direction) -> ((position, direction), (moveCell position direction level))))
+		where 
+			function = ((\(position, level, direction) -> ((position, direction), (moveCell position direction level))))
 		  
 		
-
-
-   -- isGoal EmptyLevel = Bool
- --	isGoal level = wonLevel level
+	--isGoal EmptyLevel = False
+    isGoal level = wonLevel level
+	
+	
 
 
     reverseAction = undefined

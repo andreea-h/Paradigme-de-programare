@@ -67,14 +67,19 @@ nodeChildren UndefinedNode = []
     Primește starea inițială și creează nodul corespunzător acestei stări,
     având drept copii nodurile succesorilor stării curente.
 -}
+
+
+
+
 --tipul s si a sunt inrolate in clasa ProblemState
 --succesorii vor fi nodurile la care se poate ajunge intr-o singura mutare
-createSuccessors :: (ProblemState s a, Eq s, Eq a) => a -> s -> Node s a -> Int -> Node s a
-createSuccessors action my_state parent depth  = newNode
+createSuccessors :: (ProblemState s a, Eq s, Eq a) => a -> s -> Maybe(Node s a) -> Int -> [s] -> Node s a
+createSuccessors action my_state parent depth visited = newNode
 	where 
 		newNode = NodeConst my_state (Just action) parent depth nextSucc
-		nextSucc = {--(filter (/= newNode)--} (map (\(an_action, a_state) -> createSuccessors an_action a_state newNode (depth + 1)) (filter (verFunc my_state) nexts))
-		nexts = (successors my_state)
+		visited = [my_state] ++ visited
+		nextSucc = {--(filter (/= newNode)--} (map (\(an_action, a_state) -> createSuccessors an_action a_state newNode (depth + 1) visited) (filter (verFunc parent) nexts))
+		nexts = successors my_state
 
 --crearea spatiului starilor
 --pleaca de o stare initiala s
@@ -87,8 +92,9 @@ createSuccessors action my_state parent depth  = newNode
 --abordam ciclurile in bfs
 
 
-verFunc :: (ProblemState s a, Eq s, Eq a) => s -> (a, s) -> Bool
-verFunc state (action, kids_state) = not (state == kids_state)
+verFunc :: (ProblemState s a, Eq s, Eq a) => [s] -> (a, s)-> Bool
+verFunc states (action, vis) = not (vis `elem` states)
+verFunc [] _ = True
 
 --copiii unui nod sunt succesorii lui imediati
 --adica nodurile in care se poate ajunge din nodul curent print-ro singura mutare
@@ -96,7 +102,8 @@ createStateSpace :: (ProblemState s a, Eq s, Eq a) => s -> Node s a
 createStateSpace init_state = thisNode --nodul care reprezinta starea primita ca parametru
 	where 
 		thisNode = NodeConst init_state Nothing UndefinedNode 0 kids
-		kids = map (\(an_action, a_state) -> createSuccessors an_action a_state thisNode 1) (filter (verFunc init_state) (successors init_state))
+		visited = []
+		kids = map (\(an_action, a_state) -> createSuccessors an_action a_state thisNode 1 visited) (filter (verFunc visited) (successors init_state))
 		
 --kids : starile in care se poate ajunge facand o actiune in starea curenta
 {-
