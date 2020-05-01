@@ -22,10 +22,15 @@ import ProblemState
 --o actiune
 
 data Node s a = UndefinedNode | NodeConst { state :: s, --stare ->(level)
-				      move_action :: Maybe a, --actiunea ->(position, direction)
-                                      parent :: Node s a, --nod parinte
-                                      depth :: Int, --adancime
-	                              kids :: [Node s a]} deriving (Eq, Show)
+				      						move_action :: Maybe a, --actiunea ->(position, direction)
+                                      		parent :: Node s a, --nod parinte
+                                      		depth :: Int, --adancime
+	                              			kids :: [Node s a]} deriving (Show)
+--se face adaugarea Node la Eq
+instance (Eq a, Eq s) => Eq (Node s a) where
+	UndefinedNode == UndefinedNode = True
+	NodeConst st1 _ _ _ _ == NodeConst st2  _ _ _ _ = st1 == st2
+	NodeConst st1 _ _ _ _ /= NodeConst st2  _ _ _ _ = not(st1 == st2)
 						
 {-
     *** TODO ***
@@ -64,11 +69,12 @@ nodeChildren UndefinedNode = []
 -}
 --tipul s si a sunt inrolate in clasa ProblemState
 --succesorii vor fi nodurile la care se poate ajunge intr-o singura mutare
-createSuccessors :: (ProblemState s a) => a -> s -> Node s a -> Int -> Node s a
+createSuccessors :: (ProblemState s a, Eq s, Eq a) => a -> s -> Node s a -> Int -> Node s a
 createSuccessors action my_state parent depth  = newNode
 	where 
 		newNode = NodeConst my_state (Just action) parent depth nextSucc
-		nextSucc = map (\(an_action, a_state) -> createSuccessors an_action a_state newNode (depth + 1)) (successors my_state)
+		nextSucc = {--(filter (/= newNode)--} (map (\(an_action, a_state) -> createSuccessors an_action a_state newNode (depth + 1)) (filter (verFunc my_state) nexts))
+		nexts = (successors my_state)
 
 --crearea spatiului starilor
 --pleaca de o stare initiala s
@@ -80,13 +86,18 @@ createSuccessors action my_state parent depth  = newNode
 --evitate a ciclurilor: ele apar in state Space
 --abordam ciclurile in bfs
 
+
+verFunc :: (ProblemState s a, Eq s, Eq a) => s -> (a, s) -> Bool
+verFunc state (action, kids_state) = not (state == kids_state)
+
 --copiii unui nod sunt succesorii lui imediati
 --adica nodurile in care se poate ajunge din nodul curent print-ro singura mutare
-createStateSpace :: (ProblemState s a, Eq s) => s -> Node s a
+createStateSpace :: (ProblemState s a, Eq s, Eq a) => s -> Node s a
 createStateSpace init_state = thisNode --nodul care reprezinta starea primita ca parametru
 	where 
 		thisNode = NodeConst init_state Nothing UndefinedNode 0 kids
-		kids = map (\(an_action, a_state) -> createSuccessors an_action a_state thisNode 1) (successors init_state)
+		kids = map (\(an_action, a_state) -> createSuccessors an_action a_state thisNode 1) (filter (verFunc init_state) (successors init_state))
+		
 --kids : starile in care se poate ajunge facand o actiune in starea curenta
 {-
     *** TODO ***
@@ -119,29 +130,39 @@ createStateSpace init_state = thisNode --nodul care reprezinta starea primita ca
 --nodurile care au fost adaugate in frontiera proastam 
 
 --primeste o lista de noduri si un nod si intoarce true/false daca nodul este/nu este continut in acea lista
---checkExplored :: [Node s a] -> Node s a -> Bool
---checkExpored list node = node `elem` list
+checkExplored :: (Eq a, Eq s) => [Node s a] -> Node s a -> Bool
+checkExplored list node = (node `elem` list)
+
+--argumentele sunt: nod_curent, copiii, frontiera, vizitati
+--ce returneaza: vectorul o noua pereche, vectorul de vizitati
+--getNextVals :: Node s a -> [Node s a] -> [Node s a] -> [Node s a] -> ([Node s a], [Node s a]) -> [Node s a]
+--getNextVals next kids frontier visited 
 
 
-
-utilBfs :: Ord s => ([Node s a], [Node s a]) -> [Node s a] -> [([Node s a], [Node s a])]
+utilBfs :: (Eq a, Eq s) => ([Node s a], [Node s a]) -> [Node s a] -> [([Node s a], [Node s a])]
 utilBfs explored_frontier visited 
 	| (length (snd explored_frontier)) == 0 = [([], [])]
-	| otherwise = nextVals ++ [(kids, (tail (snd explored_frontier)) ++ [next])]
+	| checkExplored visited next == False = [(kids, nextFrontier)] ++ nextVals --nod nevizitat
+	| otherwise = [(kids, nextFrontierVisited)] ++ nextValsVisited
 	where 
+		nextFrontier = (tail (snd explored_frontier)) ++ kids
 		next = (head (snd explored_frontier)) --nodul 0 din exemplu
-		kids = nodeChildren next
-		visited = visited ++ [next] --marcheaza nodul next ca nod explorat
-		nextVals = utilBfs (kids, (tail (snd explored_frontier)) ++ [next]) visited
-		
+		kids = foldl (\resP pair -> (resP ++ [(fst pair)])) [] (filter (\(node, visited)-> (not (checkExplored visited node))) kids_list) --copiii nevizitati ai nodului curent
+		newVisited = visited ++ [next] --marcheaza nodul next ca nod explorat
+		nextVals = utilBfs (kids, (tail (snd explored_frontier))) newVisited
+		nextValsVisited = utilBfs ([], (tail (tail (snd explored_frontier)))) visited
+		nextFrontierVisited = (tail (snd explored_frontier))
+		kids_list = [(x, visited) | x <- (nodeChildren next)]
 		 
 	
 
 --a doua componenta este frontiera adica nodurile la care s-a ajuns dar care nu au fost inca expandate
 --nodurile adaugate proaspat la ultimul pas in frontiera
 --rezultatul intors intoarce toate formele pe care le retine frontiera la fiecare moment de timp
-bfs :: Ord s => Node s a -> [([Node s a], [Node s a])]
-bfs source = utilBfs ([source], [source]) []
+bfs :: (Eq s, Eq a) => Node s a -> [([Node s a], [Node s a])]
+bfs source = utilBfs ([source], [source]) [source]
+--	where
+		--source_node = NodeConst (nodeState source) Nothing UndefinedNode 0 (nodeChildren source)
 	
 		
 	
