@@ -447,23 +447,31 @@ instance ProblemState Level (Position, Directions) where
 	--adica se ava aplica (moveCell pos dir level) pentru fiecare celula, in fiecare directie 
 	--rezultatul intoars de moveCell este adaugat in vectorul final daca starea another_state difera de cea curenta
 	--se aplica asta pe o lista care contine toate pozitiile din level
-    successors level 
-	| isGoal level = []
-	| otherwise = (filter (diffFunction level) (map function ((generateInput level North)))) ++
+	successors level 
+		| isGoal level = []	
+		| otherwise = (filter (diffFunction level) (map function ((generateInput level North)))) ++
 					   (filter (diffFunction level) (map function ((generateInput level South)))) ++
  					   (filter (diffFunction level) (map function ((generateInput level West)))) ++
 					   (filter (diffFunction level) (map function ((generateInput level East))))
-		where 
-			function = ((\(position, level, direction) -> ((position, direction), (moveCell position direction level))))
+		where function = ((\(position, level, direction) -> ((position, direction), (moveCell position direction level))))
 		  
 		
-	--isGoal EmptyLevel = False
-    isGoal level = wonLevel level
-	
-	
+	isGoal level = wonLevel level
 
-
-    reverseAction = undefined
+ 	reverseAction ((pos, direction), level) 
+		| direction == South = ((posN, North), levelN)
+		| direction == North = ((posS, South), levelS)
+		| direction == West = ((posE, East), levelE)
+		| otherwise = ((posW, West), levelW)
+		where
+			posN = ((fst pos) + 1, snd pos)
+			posS = ((fst pos) - 1, snd pos)
+			posW = (fst pos, (snd pos) + 1)
+			posE = (fst pos, (snd pos) - 1)
+			levelN = (moveCell posN North level)
+			levelS = (moveCell posS South level)
+			levelE = (moveCell posE East level)
+			levelW = (moveCell posW West level)			
 
 --tipul starii este un level
 --tipul actiunii: (pozitie de pe tabla, directie)

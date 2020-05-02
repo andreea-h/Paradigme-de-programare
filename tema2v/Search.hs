@@ -73,13 +73,13 @@ nodeChildren UndefinedNode = []
 
 --tipul s si a sunt inrolate in clasa ProblemState
 --succesorii vor fi nodurile la care se poate ajunge intr-o singura mutare
-createSuccessors :: (ProblemState s a, Eq s, Eq a) => a -> s -> Maybe(Node s a) -> Int -> [s] -> Node s a
+createSuccessors :: (ProblemState s a, Eq s, Eq a) => a -> s -> Node s a -> Int -> [s] -> Node s a
 createSuccessors action my_state parent depth visited = newNode
 	where 
 		newNode = NodeConst my_state (Just action) parent depth nextSucc
 		visited = [my_state] ++ visited
-		nextSucc = {--(filter (/= newNode)--} (map (\(an_action, a_state) -> createSuccessors an_action a_state newNode (depth + 1) visited) (filter (verFunc parent) nexts))
-		nexts = successors my_state
+		nextSucc = {--(filter (/= newNode)--} (map (\(an_action, a_state) -> createSuccessors an_action a_state newNode (depth + 1) visited) (filter (verFunc visited) nexts))
+		nexts = tail (successors my_state)
 
 --crearea spatiului starilor
 --pleaca de o stare initiala s
@@ -145,33 +145,36 @@ checkExplored list node = (node `elem` list)
 --getNextVals :: Node s a -> [Node s a] -> [Node s a] -> [Node s a] -> ([Node s a], [Node s a]) -> [Node s a]
 --getNextVals next kids frontier visited 
 
-
-utilBfs :: (Eq a, Eq s) => ([Node s a], [Node s a]) -> [Node s a] -> [([Node s a], [Node s a])]
-utilBfs explored_frontier visited 
-	| (length (snd explored_frontier)) == 0 = [([], [])]
-	| checkExplored visited next == False = [(kids, nextFrontier)] ++ nextVals --nod nevizitat
-	| otherwise = [(kids, nextFrontierVisited)] ++ nextValsVisited
-	where 
-		nextFrontier = (tail (snd explored_frontier)) ++ kids
-		next = (head (snd explored_frontier)) --nodul 0 din exemplu
-		kids = foldl (\resP pair -> (resP ++ [(fst pair)])) [] (filter (\(node, visited)-> (not (checkExplored visited node))) kids_list) --copiii nevizitati ai nodului curent
-		newVisited = visited ++ [next] --marcheaza nodul next ca nod explorat
-		nextVals = utilBfs (kids, (tail (snd explored_frontier))) newVisited
-		nextValsVisited = utilBfs ([], (tail (tail (snd explored_frontier)))) visited
-		nextFrontierVisited = (tail (snd explored_frontier))
-		kids_list = [(x, visited) | x <- (nodeChildren next)]
-		 
+--[(p1, p1)]
+--p1 - noduri proaspat vizitate
+--p2 reprezinta frontiera
+--nodurile explorate (am doilea parametru)
+--returneaza pereche (noduri_explorate, frontiera)
+utilBfs :: (Eq a, Eq s) => [([Node s a], [Node s a])] -> [Node s a] -> [Node s a]-> [([Node s a], [Node s a])]
+utilBfs resP queue explored 
+	| (queue == []) = resP
+	| otherwise = (utilBfs new_resP new_queue explored)
+	where
+		next = head queue
+		new_resP = resP ++ [(unexplored_kids, new_queue)]
+		unexplored_kids = foldl (\result pair -> (result ++ [(fst pair)])) [] (filter (\(node, vis)-> (not (checkExplored vis node))) kids_list) --copiii nevizitati ai nodului curent
+		kids_list = [(x, explored) | x <- (nodeChildren next)]
+		new_queue = (tail queue) ++ unexplored_kids
+		explored = explored ++ [next] 
+		
 	
+		
+
+
+
 
 --a doua componenta este frontiera adica nodurile la care s-a ajuns dar care nu au fost inca expandate
 --nodurile adaugate proaspat la ultimul pas in frontiera
 --rezultatul intors intoarce toate formele pe care le retine frontiera la fiecare moment de timp
 bfs :: (Eq s, Eq a) => Node s a -> [([Node s a], [Node s a])]
-bfs source = utilBfs ([source], [source]) [source]
---	where
-		--source_node = NodeConst (nodeState source) Nothing UndefinedNode 0 (nodeChildren source)
-	
-		
+bfs source = utilBfs [([source], [source])] [source] []
+--primeste ca argumente rezultatul partial pentru bfs, coada de noduri care trebuie vizitate, lista de noduri vizitate
+
 	
 
 --un bfs care pleaca din starea intitiala si unul care pleaca din starea finala
@@ -218,12 +221,11 @@ bidirBFS = undefined
 --starea de plecare: actiune Nothing
 --intoarce sirul de actiuni de la parinte la copiii
 --
-
+fromMaybe :: Maybe (Node s a) -> Node s a
+fromMaybe (Just x) = x
 
 extractPath :: Node s a -> [(Maybe a, s)]
-extractPath = undefined
-
-
+extractPath node = undefined
 
 {-
     *** TODO ***
