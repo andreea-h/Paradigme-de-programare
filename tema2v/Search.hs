@@ -4,6 +4,7 @@
 module Search where
 
 import ProblemState
+import Data.List;
 {-
     *** TODO ***
 
@@ -93,7 +94,6 @@ createSuccessors action my_state parent depth visited = newNode
 --evitate a ciclurilor: ele apar in state Space
 --abordam ciclurile in bfs
 
-
 verFunc :: (ProblemState s a, Eq s, Eq a) => [s] -> (a, s)-> Bool
 verFunc states (action, vis) = not (vis `elem` states)
 verFunc [] _ = True
@@ -166,8 +166,6 @@ utilBfs resP queue explored
 		new_queue = (tail queue) ++ unexplored_kids
 		new_explored = explored ++ [next] ++ unexplored_kids
 		
-	
-	
 --a doua componenta este frontiera adica nodurile la care s-a ajuns dar care nu au fost inca expandate
 --nodurile adaugate proaspat la ultimul pas in frontiera
 --rezultatul intors intoarce toate formele pe care le retine frontiera la fiecare moment de timp
@@ -187,9 +185,30 @@ bfs source = utilBfs [([source], [source])] [source] []
 -}
 
 
---
+checkBigPair :: (ProblemState s a, Eq a, Eq s, Ord a) => (([Node s a], [Node s a]), ([Node s a], [Node s a])) -> Bool
+checkBigPair (start, end) 	
+	| intersect start_neigh end_fr == [] = True
+	| intersect start_fr end_neigh == [] = True
+	| otherwise = False
+	where
+		start_fr = (snd start)
+		end_fr = (snd end)
+		start_neigh = (fst start)
+		end_neigh = (snd end)
 
-
+--primul element din pereche: bfs din nodul de start
+--al doilea element din pereche: bfs din nodul win
+{--
+extractNodes :: (ProblemState s a, Eq s, Eq a) => (([Node a s], [Node a s]), ([Node a s], [Node a s])) -> (Node s a, Node s a)
+extractNodes (start, end) =
+	| intersect start_neigh end_fr == [] = True
+	| intersect start_fr end_neigh == [] = True
+	where
+		start_fr = (snd start)
+		end_fr = (snd end)
+		start_neigh = (fst start)
+		end_neigh = (snd end)
+--}
 --se cauta nodurile proaspat adaugate in frontira unui bfs in frontiera celuilalt bfs
 --adica ma uit la al doilea element din ce intoarce bfs
 ---bfs1 -> [(neighbors1, frontiera1)
@@ -201,8 +220,13 @@ bfs source = utilBfs [([source], [source])] [source] []
 --se opreste cand adaugam in frontiera noduri care se gasesc in frontiera celuilui bfs
 --sau viceversa  -> cele 2 bfs uri s-au intersectat
 --se construieste calea de la starea initiala la starea finala
-bidirBFS :: Ord s => Node s a -> Node s a -> (Node s a, Node s a)
-bidirBFS = undefined
+bidirBFS :: (ProblemState s a, Eq s, Eq a, Ord a) => Node s a -> Node s a -> (Node s a, Node s a)
+bidirBFS start_node end_node = (head (fst (fst (start_end !! (res - 1)))), (head (fst (snd (start_end !! (res - 1))))))
+	where
+		start_bfs = bfs start_node
+		end_bfs = bfs end_node
+		start_end = zip start_bfs end_bfs
+		res = length (takeWhile (\big_pair -> (checkBigPair big_pair)) start_end)
 
 --se dau ca paraemtri starea initiala, respectiv cea finala
 --intoarce starea finala la care s-a ajuns in urma celor 2 bfs-uri
