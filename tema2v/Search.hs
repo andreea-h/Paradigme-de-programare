@@ -25,13 +25,14 @@ data Node s a = UndefinedNode | NodeConst { state :: s, --stare ->(level)
 				      						move_action :: Maybe a, --actiunea ->(position, direction)
                                       		parent :: Node s a, --nod parinte
                                       		depth :: Int, --adancime
-	                              			kids :: [Node s a]} deriving (Show)
+	                              			kids :: [Node s a]} deriving (Show, Eq)
+{--
 --se face adaugarea Node la Eq
 instance (Eq a, Eq s) => Eq (Node s a) where
 	UndefinedNode == UndefinedNode = True
 	NodeConst st1 _ _ _ _ == NodeConst st2  _ _ _ _ = st1 == st2
 	NodeConst st1 _ _ _ _ /= NodeConst st2  _ _ _ _ = not(st1 == st2)
-						
+	--}					
 {-
     *** TODO ***
     Gettere folosite pentru accesul la câmpurile nodului
@@ -40,8 +41,6 @@ instance (Eq a, Eq s) => Eq (Node s a) where
 --intorc campurile punctuale din nod
 nodeState :: Node s a -> s
 nodeState (NodeConst st _ _ _ _) = st
---nodeState (VidNode st) = (VidNode st)
---nodeState (VidNode v) = NodeConst VidNode v
 
 nodeParent :: Node s a -> Maybe (Node s a)
 nodeParent (NodeConst _ _ p _ _) = Just p
@@ -67,9 +66,13 @@ nodeChildren UndefinedNode = []
     Primește starea inițială și creează nodul corespunzător acestei stări,
     având drept copii nodurile succesorilor stării curente.
 -}
+--intoarce true daca doua stari sunt diferite
+checkState :: (Eq s) => s -> (a, s) -> Bool
+checkState state1 pair = (state1 /= (snd pair))
 
-
-
+fromMaybe :: Maybe (Node s a) -> Node s a
+fromMaybe (Just x) = x
+fromMaybe Nothing = UndefinedNode
 
 --tipul s si a sunt inrolate in clasa ProblemState
 --succesorii vor fi nodurile la care se poate ajunge intr-o singura mutare
@@ -77,9 +80,8 @@ createSuccessors :: (ProblemState s a, Eq s, Eq a) => a -> s -> Node s a -> Int 
 createSuccessors action my_state parent depth visited = newNode
 	where 
 		newNode = NodeConst my_state (Just action) parent depth nextSucc
-		visited = [my_state] ++ visited
-		nextSucc = {--(filter (/= newNode)--} (map (\(an_action, a_state) -> createSuccessors an_action a_state newNode (depth + 1) visited) (filter (verFunc visited) nexts))
-		nexts = tail (successors my_state)
+		nextSucc = map (\(an_action, a_state) -> createSuccessors an_action a_state newNode (depth + 1) (my_state : visited)) nexts
+		nexts = (tail (filter (\pair -> (snd pair `elem` (my_state : visited))) (successors my_state)))
 
 --crearea spatiului starilor
 --pleaca de o stare initiala s
@@ -102,8 +104,8 @@ createStateSpace :: (ProblemState s a, Eq s, Eq a) => s -> Node s a
 createStateSpace init_state = thisNode --nodul care reprezinta starea primita ca parametru
 	where 
 		thisNode = NodeConst init_state Nothing UndefinedNode 0 kids
-		visited = []
-		kids = map (\(an_action, a_state) -> createSuccessors an_action a_state thisNode 1 visited) (filter (verFunc visited) (successors init_state))
+		visited = [init_state]
+		kids = map (\(an_action, a_state) -> createSuccessors an_action a_state thisNode 1 visited) (successors init_state)
 		
 --kids : starile in care se poate ajunge facand o actiune in starea curenta
 {-
@@ -145,6 +147,8 @@ checkExplored list node = (node `elem` list)
 --getNextVals :: Node s a -> [Node s a] -> [Node s a] -> [Node s a] -> ([Node s a], [Node s a]) -> [Node s a]
 --getNextVals next kids frontier visited 
 
+
+
 --[(p1, p1)]
 --p1 - noduri proaspat vizitate
 --p2 reprezinta frontiera
@@ -153,21 +157,17 @@ checkExplored list node = (node `elem` list)
 utilBfs :: (Eq a, Eq s) => [([Node s a], [Node s a])] -> [Node s a] -> [Node s a]-> [([Node s a], [Node s a])]
 utilBfs resP queue explored 
 	| (queue == []) = resP
-	| otherwise = (utilBfs new_resP new_queue explored)
+	| otherwise = (utilBfs new_resP new_queue new_explored)
 	where
 		next = head queue
 		new_resP = resP ++ [(unexplored_kids, new_queue)]
 		unexplored_kids = foldl (\result pair -> (result ++ [(fst pair)])) [] (filter (\(node, vis)-> (not (checkExplored vis node))) kids_list) --copiii nevizitati ai nodului curent
 		kids_list = [(x, explored) | x <- (nodeChildren next)]
 		new_queue = (tail queue) ++ unexplored_kids
-		explored = explored ++ [next] 
+		new_explored = explored ++ [next] ++ unexplored_kids
 		
 	
-		
-
-
-
-
+	
 --a doua componenta este frontiera adica nodurile la care s-a ajuns dar care nu au fost inca expandate
 --nodurile adaugate proaspat la ultimul pas in frontiera
 --rezultatul intors intoarce toate formele pe care le retine frontiera la fiecare moment de timp
@@ -221,8 +221,7 @@ bidirBFS = undefined
 --starea de plecare: actiune Nothing
 --intoarce sirul de actiuni de la parinte la copiii
 --
-fromMaybe :: Maybe (Node s a) -> Node s a
-fromMaybe (Just x) = x
+
 
 extractPath :: Node s a -> [(Maybe a, s)]
 extractPath node = undefined

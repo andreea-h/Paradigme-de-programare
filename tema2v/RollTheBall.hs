@@ -111,8 +111,12 @@ data Level = EmptyLevel | LvlConst {
 		highterLeft :: Position,
 		lowerRight :: Position,
 		table :: (T.Array Position Cell)
-		}
-  	 deriving (Eq, Ord)
+		} deriving (Ord)
+
+instance Eq Level where
+	(LvlConst _ _ table1) == (LvlConst _ _ table2) = (table1 == table2)
+	(LvlConst _ _ table1) /= (LvlConst _ _ table2) = (table1 /= table2)
+	
 
 
 {-
@@ -447,9 +451,7 @@ instance ProblemState Level (Position, Directions) where
 	--adica se ava aplica (moveCell pos dir level) pentru fiecare celula, in fiecare directie 
 	--rezultatul intoars de moveCell este adaugat in vectorul final daca starea another_state difera de cea curenta
 	--se aplica asta pe o lista care contine toate pozitiile din level
-	successors level 
-		| isGoal level = []	
-		| otherwise = (filter (diffFunction level) (map function ((generateInput level North)))) ++
+	successors level = (filter (diffFunction level) (map function ((generateInput level North)))) ++
 					   (filter (diffFunction level) (map function ((generateInput level South)))) ++
  					   (filter (diffFunction level) (map function ((generateInput level West)))) ++
 					   (filter (diffFunction level) (map function ((generateInput level East))))
