@@ -97,6 +97,18 @@ functie (v1, v2) = if (dotV (fst (v1, v2)) (snd (v1, v2))) == 0 then True else F
 orthogonalV lista_vectori = ((length (filter (functie)
 	 [(v1, v2) | v1 <- lista_vectori, v2 <- lista_vectori, v1 /= v2])) == length [(v1, v2) | v1 <- lista_vectori, v2 <- lista_vectori, v1 /= v2])
 
+data Lst a b = NilNew | Consa a (Lst a b) | Consb b (Lst a b)
+
+type Point = (Double, Double)
+type Points2D = (Point, Point)
+
+getSlope :: Points2D -> Double
+getSlope x = ((snd (snd x)) - (snd (fst x))) / ((fst (snd x)) - (fst (fst x)))
+
+
+f (Nothing : xs) = f xs
+
+
 -- 
 check1 :: TestData
 check1 = do
