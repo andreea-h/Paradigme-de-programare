@@ -76,7 +76,8 @@ select_answer(Tokens, UserMemory, BotMemory, Answer, Action) :-
     get_action(H, Action),
     get_all_replies(H, Replies), %extrage lista de replici pentru prima regula care a facut match
     get_replies_list(Replies, BotMemory, [], RulesAsList),
-    min_element(RulesAsList, Answer).
+    reverse(RulesAsList, Rez),
+    min_element(Rez, Answer).
 
 
 get_all_replies(rule(_, Replies, _,_,_), Replies).
