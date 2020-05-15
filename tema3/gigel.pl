@@ -50,13 +50,27 @@ head([H|_], H).
 % gigel
 % face o lista de perechi valoarea (replica) + key (de cate ori a fost
 % zisa) pentru replicile care au facut match
-get_used_rules_as_list([Rule|RestRule], BotMemory, ReplyList) :- [(Rule, BotMemory.get(Rule))|ReplyList], get_used_rules_as_list(RestRules, BotMemory, ReplyList).
+get_used_rules_as_list([Rule|RestRule], BotMemory, ReplyList) :-
+  [(Rule, BotMemory.get(Rule))|ReplyList], get_used_rules_as_list(RestRules, BotMemory, ReplyList).
 
 get_reply(rule(_, [H|Rules], _, _, _), BotMemory, H).
 
+tail([_|Tail], Tail).
+
+% check_rule reuseste daca replica memorata in regula primita la intrare NU este [nu, inteleg]
+check_rule(rule(_, Reply, _, _ , _)) :- head(Reply, H), \+ (H == [nu, inteleg]).
+
+%delete_non_answer(RulesList, Rules_Result) :-
 
 % ord_subset intoarce true daca
-get_rules([H|Tokens], RulesList) :- rules([H], RulesList).
+snd_get_rules(Tokens, RulesList) :- rules(Tokens, RulesList).
+get_rules(Tokens, RulesList) :-
+ snd_get_rules(Tokens, RulesList);
+ (head(Tokens, H), rules([H], RulesList)); (tail(Tokens, Tail), get_rules(Tail, RulesList)).
+
+% primeste o lista de regula si le separa doar pe cele care nu contin replica [nu, inteleg]
+select_rules([H|Rest], Result) :-
+    findall(H, check_rule(H), Result).
 
 get_action(rule(_,_,Action,_,_), Action).
 
@@ -67,14 +81,16 @@ update_memory(NewMemory, NewMemory).
 % pentru situatia in care memoria botului este goala
 select_answer(Tokens, UserMemory, BotMemory, Answer, Action) :-
     get_rules(Tokens, RulesList),
-    find_matching_rules(Tokens, RulesList, UserMemory, MatchingRules), head(MatchingRules, H),
+    select_rules(RulesList, Rules),
+    find_matching_rules(Tokens, Rules, UserMemory, MatchingRules), head(MatchingRules, H),
     get_reply(H, BotMemory, Answer), get_action(H, Action),
     BotMemory == memory{}.
 
 % atunci cand memoria botului nu este goala, se alege replica cu ce mai mica utilizare de pena acum
 select_answer(Tokens, UserMemory, BotMemory, Answer, Action) :-
     get_rules(Tokens, RulesList),
-    find_matching_rules(Tokens, RulesList, UserMemory, MatchingRules), head(MatchingRules, H),
+    select_rules(RulesList, Rules),
+    find_matching_rules(Tokens, Rules, UserMemory, MatchingRules), head(MatchingRules, H),
     get_action(H, Action),
     get_all_replies(H, Replies), %extrage lista de replici pentru prima regula care a facut match
     get_replies_list(Replies, BotMemory, [], RulesAsList),
