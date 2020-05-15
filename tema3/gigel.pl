@@ -8,7 +8,8 @@
 %
 % primeste toti 3 parametrii si intoarce true sau false
 %
-match_rule(Tokens, _UserMemory, rule(Expresie, _, _, _, _)) :- Tokens = Expresie.
+match_rule(Tokens, _UserMemory, rule(Expresie, _, _, _, _)) :-
+  Tokens = Expresie, ord_subset(Token, Expresie).
 
 % Primeste replica utilizatorului (ca lista de tokens) si o lista de
 % reguli, iar folosind match_rule le filtrează doar pe cele care se
@@ -55,7 +56,8 @@ get_reply(rule(_, [H|Rules], _, _, _), BotMemory, H).
 
 
 % ord_subset intoarce true daca
-get_rules(Tokens, RulesList) :- rules(Tokens, RulesList).
+get_rules([H|Tokens], RulesList) :- rules([H], RulesList).
+
 get_action(rule(_,_,Action,_,_), Action).
 
 add_new_answer(Answer, BotMemory, NewMemory):- NewMemory = BotMemory.put(Answer, 1).
