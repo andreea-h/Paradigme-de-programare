@@ -9,7 +9,7 @@
 % primeste toti 3 parametrii si intoarce true sau false
 %
 match_rule(Tokens, _UserMemory, rule(Expresie, _, _, _, _)) :-
-  Tokens = Expresie, ord_subset(Token, Expresie).
+  Tokens = Expresie, ord_subset(Tokens, Expresie).
 
 % Primeste replica utilizatorului (ca lista de tokens) si o lista de
 % reguli, iar folosind match_rule le filtrează doar pe cele care se
@@ -19,8 +19,8 @@ match_rule(Tokens, _UserMemory, rule(Expresie, _, _, _, _)) :-
 % matchingRules e de iesire
 % rules este o lista de rule (adica o lista de structuri rule)
 % din toate rule ia doar rule-urile care au match iut cu tokens
-find_matching_rules(Tokens, [HRule|RestRules], UserMemory, MatchingRules) :-
-    findall(HRule, match_rule(Tokens, UserMemory, HRule), MatchingRules).
+find_matching_rules(Tokens, Rules, UserMemory, MatchingRules) :-
+    findall(Rule, (member(Rule, Rules), match_rule(Tokens, UserMemory, Rule)), MatchingRules).
 
 % Intoarce in Answer replica lui Gigel. Selecteaza un set de reguli
 % (folosind predicatul rules) pentru care cuvintele cheie se afla in
@@ -46,31 +46,23 @@ find_matching_rules(Tokens, [HRule|RestRules], UserMemory, MatchingRules) :-
 
 head([H|_], H).
 
-% intoarce acea replica care a fost utilizata de cele mai putine ori de
-% gigel
-% face o lista de perechi valoarea (replica) + key (de cate ori a fost
-% zisa) pentru replicile care au facut match
-get_used_rules_as_list([Rule|RestRule], BotMemory, ReplyList) :-
-  [(Rule, BotMemory.get(Rule))|ReplyList], get_used_rules_as_list(RestRules, BotMemory, ReplyList).
-
-get_reply(rule(_, [H|Rules], _, _, _), BotMemory, H).
+get_reply(rule(_, [H|_], _, _, _), _, H).
 
 tail([_|Tail], Tail).
 
 % check_rule reuseste daca replica memorata in regula primita la intrare NU este [nu, inteleg]
-check_rule(rule(_, Reply, _, _ , _)) :- head(Reply, H), \+ (H == [nu, inteleg]).
+check_rule(rule(_, Reply, _, _ , _)) :- head(Reply, H), \+ (H == [nu, inteleg]), Reply \= [].
 
-%delete_non_answer(RulesList, Rules_Result) :-
-
-% ord_subset intoarce true daca
 snd_get_rules(Tokens, RulesList) :- rules(Tokens, RulesList).
-get_rules(Tokens, RulesList) :-
- snd_get_rules(Tokens, RulesList);
- (head(Tokens, H), rules([H], RulesList)); (tail(Tokens, Tail), get_rules(Tail, RulesList)).
 
-% primeste o lista de regula si le separa doar pe cele care nu contin replica [nu, inteleg]
-select_rules([H|Rest], Result) :-
-    findall(H, check_rule(H), Result).
+get_rules(Tokens, RulesList) :-
+  (tail(Tokens, Tail), get_rules(Tail, RulesList));
+  (head(Tokens, H), rules([H], RulesList));
+  snd_get_rules(Tokens, RulesList).
+
+% primeste o lista de reguli si le separa doar pe cele care nu contin replica [nu, inteleg]
+select_rules(InpRulesList, Result) :-
+    findall(H, (member(H, InpRulesList), check_rule(H)), Result).
 
 get_action(rule(_,_,Action,_,_), Action).
 
@@ -78,10 +70,11 @@ add_new_answer(Answer, BotMemory, NewMemory):- NewMemory = BotMemory.put(Answer,
 
 update_memory(NewMemory, NewMemory).
 
+
 % pentru situatia in care memoria botului este goala
 select_answer(Tokens, UserMemory, BotMemory, Answer, Action) :-
     get_rules(Tokens, RulesList),
-    select_rules(RulesList, Rules),
+    select_rules(RulesList, Rules), Rules \== [],
     find_matching_rules(Tokens, Rules, UserMemory, MatchingRules), head(MatchingRules, H),
     get_reply(H, BotMemory, Answer), get_action(H, Action),
     BotMemory == memory{}.
@@ -89,7 +82,7 @@ select_answer(Tokens, UserMemory, BotMemory, Answer, Action) :-
 % atunci cand memoria botului nu este goala, se alege replica cu ce mai mica utilizare de pena acum
 select_answer(Tokens, UserMemory, BotMemory, Answer, Action) :-
     get_rules(Tokens, RulesList),
-    select_rules(RulesList, Rules),
+    select_rules(RulesList, Rules), Rules \== [],
     find_matching_rules(Tokens, Rules, UserMemory, MatchingRules), head(MatchingRules, H),
     get_action(H, Action),
     get_all_replies(H, Replies), %extrage lista de replici pentru prima regula care a facut match
@@ -97,21 +90,18 @@ select_answer(Tokens, UserMemory, BotMemory, Answer, Action) :-
     reverse(RulesAsList, Rez),
     min_element(Rez, Answer).
 
-%urmatoarele 2 predicate select_answer trateaza situatiile in care robotul raspunde doar cu [nu, inteleg]
-%pentru aceaste situatii poate fi construit direct raspunsul dat([nu, inteleg])
+% urmatoarele 2 predicate select_answer trateaza situatiile in care robotul raspunde doar cu [nu, inteleg]
+% (caz in care ultimele 2 interogari pentru select_answer de mai sus esueaza)
+% pentru aceaste situatii poate fi construit direct raspunsul dat([nu, inteleg])
 
 % pentru situatia in care memoria botului este goala
-select_answer(Tokens, UserMemory, BotMemory, Answer, Action) :-
-    get_rules(Tokens, RulesList),
-    select_rules(RulesList, Rules), Rules == [],
-    get_action(H, Action), Answer = [nu, inteleg],
+select_answer(_, _, BotMemory, Answer, _) :-
+    Answer = [nu, inteleg],
     BotMemory == memory{}.
 
+
 % atunci cand memoria botului nu este goala, se alege replica cu ce mai mica utilizare de pena acum
-select_answer(Tokens, UserMemory, BotMemory, Answer, Action) :-
-    get_rules(Tokens, RulesList),
-    select_rules(RulesList, Rules), Rules == [],
-    get_action(H, Action),
+select_answer(_, _, _, Answer, _) :-
     Answer = [nu, inteleg].
 
 get_all_replies(rule(_, Replies, _,_,_), Replies).
@@ -123,9 +113,6 @@ get_replies_list([Reply|Replies], BotMemory, Acc, Result) :-
   get_replies_pair(Reply, BotMemory, Pair), get_replies_list(Replies, BotMemory,[Pair|Acc], Result).
 
 % get_best_reply(rule(_, [H|Rules], _, _, _), BotMemory, Answer) :-
-
-
-
 
 % Esuează doar daca valoarea exit se afla in lista Actions.
 % Altfel, returnează true.
@@ -151,7 +138,7 @@ handle_actions([H|RestActions]) :- \+ (H = exit), handle_actions(RestActions).
 
 count_words(Token, Word_Dict) :-  Word_Dict.put(Token, Word_Dict.get(Token) + 1).
 
-find_occurrences(Memory, _Result) :- fail.
+find_occurrences(_, _Result) :- fail.
 
 % Atribuie un scor pentru fericire (de cate ori au fost folosit cuvinte din predicatul happy(X))
 % cu cât scorul e mai mare cu atât e mai probabil ca utilizatorul să fie fericit.
