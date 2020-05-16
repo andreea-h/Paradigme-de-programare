@@ -97,6 +97,22 @@ select_answer(Tokens, UserMemory, BotMemory, Answer, Action) :-
     reverse(RulesAsList, Rez),
     min_element(Rez, Answer).
 
+%urmatoarele 2 predicate select_answer trateaza situatiile in care robotul raspunde doar cu [nu, inteleg]
+%pentru aceaste situatii poate fi construit direct raspunsul dat([nu, inteleg])
+
+% pentru situatia in care memoria botului este goala
+select_answer(Tokens, UserMemory, BotMemory, Answer, Action) :-
+    get_rules(Tokens, RulesList),
+    select_rules(RulesList, Rules), Rules == [],
+    get_action(H, Action), Answer = [nu, inteleg],
+    BotMemory == memory{}.
+
+% atunci cand memoria botului nu este goala, se alege replica cu ce mai mica utilizare de pena acum
+select_answer(Tokens, UserMemory, BotMemory, Answer, Action) :-
+    get_rules(Tokens, RulesList),
+    select_rules(RulesList, Rules), Rules == [],
+    get_action(H, Action),
+    Answer = [nu, inteleg].
 
 get_all_replies(rule(_, Replies, _,_,_), Replies).
 
