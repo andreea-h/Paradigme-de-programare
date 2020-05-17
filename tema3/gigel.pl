@@ -9,7 +9,7 @@
 % primeste toti 3 parametrii si intoarce true sau false
 %
 match_rule(Tokens, _UserMemory, rule(Expresie, _, _, _, _)) :-
-  Tokens = Expresie, ord_subset(Tokens, Expresie).
+  Tokens = Expresie.
 
 % Primeste replica utilizatorului (ca lista de tokens) si o lista de
 % reguli, iar folosind match_rule le filtrează doar pe cele care se
@@ -18,7 +18,7 @@ match_rule(Tokens, _UserMemory, rule(Expresie, _, _, _, _)) :-
 % primele 3 argumente se dau
 % matchingRules e de iesire
 % rules este o lista de rule (adica o lista de structuri rule)
-% din toate rule ia doar rule-urile care au match iut cu tokens
+% din toate rule ia doar rule-urile care au match-iut cu tokens
 find_matching_rules(Tokens, Rules, UserMemory, MatchingRules) :-
     findall(Rule, (member(Rule, Rules), match_rule(Tokens, UserMemory, Rule)), MatchingRules).
 
@@ -136,14 +136,48 @@ handle_actions([H|RestActions]) :- \+ (H = exit), handle_actions(RestActions).
 % primeste userMemory si intoarce result (un scor)
 % scorul este numarul de aparitii ale cuvintelor
 
-count_words(Token, Word_Dict) :-  Word_Dict.put(Token, Word_Dict.get(Token) + 1).
+% primeste un dictionar si intoarce o lista alcatuita din toate cuvintele catre
+% se gasesc in alcatuirea propozitiilor din cheile din dictionar (inclus elemente duplicate)
+get_Tokens_from_Dict(Dict, RepList) :-
+  dict_keys(Dict, AuxList), get_words_from_list(Dict, AuxList, [], RepList).
 
-find_occurrences(_, _Result) :- fail.
+% apendeaza la List de 'Counter' ori lista Elem
+repeated_append(Max, Counter, Elem, List, Acc, ResultList) :-
+  Counter =< Max,
+  append(Elem, Acc, Result),
+  Counter1 is Counter + 1,
+  repeated_append(Max, Counter1, Elem, List, Result, ResultList).
+
+% regula de mai sus esueaza pentru Counter > Max
+repeated_append(Max, Max1, Elem, List, Acc, Acc) :- Max1 =:= Max + 1.
+
+
+% primeste o lista de replici si intoarce o lista de tokeni
+get_words_from_list(Dict, [], Acc, Acc).
+get_words_from_list(Dict, [H|RepList], Acc, TokensList) :-
+  words(H, List),
+  Val = Dict.get(H),
+  Counter = 1,
+  repeated_append(Val, Counter, List, List, Acc, RezP),
+  get_words_from_list(Dict, RepList, RezP, TokensList).
+
+count(_, [], 0).
+count(X, [X | T], N) :-
+  !, count(X, T, N1),
+  N is N1 + 1.
+count(X, [_ | T], N) :-count(X, T, N).
+
+% primeste o lista si un dictionar si intoarce numarul de aparitii al
+% acelui cuvant in dictionar
+find_occurrences(Dict, Word, Result) :-
+  get_Tokens_from_Dict(Dict, TokensList),
+  count(Word, TokensList, Result).
+
 
 % Atribuie un scor pentru fericire (de cate ori au fost folosit cuvinte din predicatul happy(X))
 % cu cât scorul e mai mare cu atât e mai probabil ca utilizatorul să fie fericit.
 %
-% frecventa pentru cuvintele de fericirex
+% frecventa pentru cuvintele de fericire
 get_happy_score(_UserMemory, _Score) :- fail.
 
 % Atribuie un scor pentru tristețe (de cate ori au fost folosit cuvinte din predicatul sad(X))
