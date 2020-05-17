@@ -5,9 +5,7 @@
 % reprezentata ca o lista de tokens. Are nevoie de
 % memoria replicilor utilizatorului pentru a deduce emoția/tag-ul
 % conversației.
-%
-% primeste toti 3 parametrii si intoarce true sau false
-%
+
 match_rule(Tokens, _UserMemory, rule(Expresie, _, _, _, _)) :-
   Tokens = Expresie.
 
@@ -95,7 +93,6 @@ select_answer(Tokens, UserMemory, BotMemory, Answer, Action) :-
     get_reply(H, BotMemory, Answer), get_action(H, Action),
     BotMemory == memory{}.
 
-
 % atunci cand memoria botului nu este goala, se alege replica cu ce mai mica utilizare de pena acum
 select_answer(Tokens, UserMemory, BotMemory, Answer, Action) :-
     get_rules(Tokens, RulesList),
@@ -175,18 +172,18 @@ get_words_from_list(Dict, [H|RepList], Acc, TokensList) :-
   repeated_append(Val, Counter, List, List, Acc, RezP),
   get_words_from_list(Dict, RepList, RezP, TokensList).
 
-count(_, [], 0).
-count(X, [X | T], N) :-
-  !, count(X, T, N1),
-  N is N1 + 1.
-count(X, [_ | T], N) :-count(X, T, N).
+% pune in al treilea argument numarul de aparitii al primului argument in
+% lista primita ca al doilea parametru
+occurrences(_, [], 0).
+occurrences(Word, [Word|Rest], Res) :- occurrences(Word, Rest, Res1), Res is Res1 + 1.
+occurrences(Word, [_|Rest], Res) :-
+  occurrences(Word, Rest, Res). % Word nu este primul element in lista primita ca argument
 
 % primeste o lista si un dictionar si intoarce numarul de aparitii al
 % acelui cuvant in dictionar
 find_occurrences(Dict, Word, Result) :-
-  get_Tokens_from_Dict(Dict, TokensList),
-  count(Word, TokensList, Result).
-
+  get_Tokens_from_Dict(Dict, TokensList), %formeaza o lista cu toate cuvintele din cheile dictionarului
+  once(occurrences(Word, TokensList, Result)).
 
 % Atribuie un scor pentru fericire (de cate ori au fost folosit cuvinte din predicatul happy(X))
 % cu cât scorul e mai mare cu atât e mai probabil ca utilizatorul să fie fericit.
@@ -201,7 +198,6 @@ get_happy_score(UserMemory, Score) :-
 get_sad_score(UserMemory, Score) :-
   sad(Word),
   find_occurrences(UserMemory, Word, Score).
-
 
 % Pe baza celor doua scoruri alege emoția utilizatorul: `fericit`/`trist`,
 % sau `neutru` daca scorurile sunt egale.
@@ -259,21 +255,6 @@ get_tag_score(_, _, 0).
 % primeste user memory, cauta toate tagurile si intoarce tag-ul cu
 % scorul de frecventa cea mai mare
 % mai multe taguri cu acelasi scor: se ia primul tag
-
-% primeste lista de cuvinte din memorie si alcatuieste un dictionar
-% format din cuvinte si frecventa aparitiei fiecarui cuvant
-create_score_dict([Word|WordsList], UserMemory, ScoreDict, Rez) :-
-  get_tag_score(Word, UserMemory, Score),
-  NewDict = ScoreDict.put(Word, Score),
-  create_score_dict(WordsList, UserMemory, NewDict, Rez).
-
-create_score_dict([], _, NewDict, NewDict).
-
-% ia la intrare memoria userului si intoarce un dictionar de forma tag - valoare_scor
-get_tags_score(UserMemory, ScoreDict) :-
-  get_Tokens_from_Dict(UserMemory, TokensList),
-  sort(TokensList, ScoreList), %elimina duplicatele
-  create_score_dict(ScoreList, UserMemory, memory{}, ScoreDict).
 
 get_tag(UserMemory, film) :-
   get_tag_score(film, UserMemory, ScoreFilm),
