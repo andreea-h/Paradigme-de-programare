@@ -19,6 +19,15 @@ match_rule(Tokens, _UserMemory, rule(Expresie, _, _, _, _)) :-
 % matchingRules e de iesire
 % rules este o lista de rule (adica o lista de structuri rule)
 % din toate rule ia doar rule-urile care au match-iut cu tokens
+
+find_matching_rules(Tokens, Rules, UserMemory, MatchingRules) :-
+    get_tag(UserMemory, sport),
+    findall(Rule, (member(Rule, Rules), Rule = rule(_,_,_,_,[sport]), match_rule(Tokens, UserMemory, Rule)), MatchingRules).
+
+find_matching_rules(Tokens, Rules, UserMemory, MatchingRules) :-
+    get_tag(UserMemory, film),
+    findall(Rule, (member(Rule, Rules), Rule = rule(_,_,_,_,[film]), match_rule(Tokens, UserMemory, Rule)), MatchingRules).
+
 find_matching_rules(Tokens, Rules, UserMemory, MatchingRules) :-
     get_emotion(UserMemory, fericit),
     findall(Rule, (member(Rule, Rules), Rule = rule(_,_,_,[fericit],_), match_rule(Tokens, UserMemory, Rule)), MatchingRules).
@@ -223,14 +232,26 @@ get_emotion(UserMemory, neutru) :-
   SadScore > 0,
   HappyScore == SadScore.
 
-% Atribuie un scor pentru un Tag (de cate ori au fost folosit cuvinte din lista tag(Tag, Lista))
+% pune in Score numarul de aparitii al cuvintelor din lista de taguri in memoria userului
+count_occurences(_, [], RezP, RezP).
+count_occurences(UserMemory, [H|RestTagList], RezP, Score) :-
+  find_occurrences(UserMemory, H, Res),
+  Rez is RezP + Res,
+  count_occurences(UserMemory, RestTagList, Rez, Score).
+
+% Atribuie un scor pentru un Tag (de cate ori au fost folosite cuvinte din lista tag(Tag, Lista))
 % cu cât scorul e mai mare cu atât e mai probabil ca utilizatorul să vorbească despre acel subiect.
-get_tag_score(_Tag, _UserMemory, _Score) :- fail.
+get_tag_score(Tag, UserMemory, Score) :-
+  tag(Tag, TagList),
+  count_occurences(UserMemory, TagList, 0, Score).
+
+% daca interogarea tag(Tag, TagList) esueaza, se pune in Score 0
+get_tag_score(_, _, 0).
 
 % Pentru fiecare tag calculeaza scorul și îl alege pe cel cu scorul maxim.
 % Dacă toate scorurile sunt 0 tag-ul va fi none.
 % e.g:
-% ?- get_emotion(memory{'joc fotbal': 2, 'joc box': 3}, Tag).
+% ?- get_tag(memory{'joc fotbal': 2, 'joc box': 3}, Tag).
 % Tag = sport.
 %
 %tag-urile sunt generalizari ale emotiilor
@@ -239,4 +260,38 @@ get_tag_score(_Tag, _UserMemory, _Score) :- fail.
 % scorul de frecventa cea mai mare
 % mai multe taguri cu acelasi scor: se ia primul tag
 
-get_tag(_UserMemory, _Tag) :- fail.
+% primeste lista de cuvinte din memorie si alcatuieste un dictionar
+% format din cuvinte si frecventa aparitiei fiecarui cuvant
+create_score_dict([Word|WordsList], UserMemory, ScoreDict, Rez) :-
+  get_tag_score(Word, UserMemory, Score),
+  NewDict = ScoreDict.put(Word, Score),
+  create_score_dict(WordsList, UserMemory, NewDict, Rez).
+
+create_score_dict([], _, NewDict, NewDict).
+
+% ia la intrare memoria userului si intoarce un dictionar de forma tag - valoare_scor
+get_tags_score(UserMemory, ScoreDict) :-
+  get_Tokens_from_Dict(UserMemory, TokensList),
+  sort(TokensList, ScoreList), %elimina duplicatele
+  create_score_dict(ScoreList, UserMemory, memory{}, ScoreDict).
+
+get_tag(UserMemory, film) :-
+  get_tag_score(film, UserMemory, ScoreFilm),
+  get_tag_score(sport, UserMemory, ScoreSport),
+  ScoreFilm >= ScoreSport,
+  ScoreFilm > 0,
+  ScoreSport > 0.
+
+get_tag(UserMemory, sport) :-
+  get_tag_score(film, UserMemory, ScoreFilm),
+  get_tag_score(sport, UserMemory, ScoreSport),
+  ScoreFilm < ScoreSport,
+  ScoreFilm > 0,
+  ScoreSport > 0.
+
+% tag 'none' cand ambele scoruri (film/sport) sunt 0
+get_tag(UserMemory, none) :-
+  get_tag_score(film, UserMemory, ScoreFilm),
+  get_tag_score(sport, UserMemory, ScoreSport),
+  ScoreFilm =:= 0,
+  ScoreSport =:= 0.
