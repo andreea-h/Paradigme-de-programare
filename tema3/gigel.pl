@@ -20,6 +20,14 @@ match_rule(Tokens, _UserMemory, rule(Expresie, _, _, _, _)) :-
 % rules este o lista de rule (adica o lista de structuri rule)
 % din toate rule ia doar rule-urile care au match-iut cu tokens
 find_matching_rules(Tokens, Rules, UserMemory, MatchingRules) :-
+    get_emotion(UserMemory, fericit),
+    findall(Rule, (member(Rule, Rules), Rule = rule(_,_,_,[fericit],_), match_rule(Tokens, UserMemory, Rule)), MatchingRules).
+
+find_matching_rules(Tokens, Rules, UserMemory, MatchingRules) :-
+    get_emotion(UserMemory, trist),
+    findall(Rule, (member(Rule, Rules), Rule = rule(_,_,_,[trist],_), match_rule(Tokens, UserMemory, Rule)), MatchingRules).
+
+find_matching_rules(Tokens, Rules, UserMemory, MatchingRules) :-
     findall(Rule, (member(Rule, Rules), match_rule(Tokens, UserMemory, Rule)), MatchingRules).
 
 % Intoarce in Answer replica lui Gigel. Selecteaza un set de reguli
@@ -70,7 +78,6 @@ add_new_answer(Answer, BotMemory, NewMemory):- NewMemory = BotMemory.put(Answer,
 
 update_memory(NewMemory, NewMemory).
 
-
 % pentru situatia in care memoria botului este goala
 select_answer(Tokens, UserMemory, BotMemory, Answer, Action) :-
     get_rules(Tokens, RulesList),
@@ -78,6 +85,7 @@ select_answer(Tokens, UserMemory, BotMemory, Answer, Action) :-
     find_matching_rules(Tokens, Rules, UserMemory, MatchingRules), head(MatchingRules, H),
     get_reply(H, BotMemory, Answer), get_action(H, Action),
     BotMemory == memory{}.
+
 
 % atunci cand memoria botului nu este goala, se alege replica cu ce mai mica utilizare de pena acum
 select_answer(Tokens, UserMemory, BotMemory, Answer, Action) :-
@@ -98,8 +106,6 @@ select_answer(Tokens, UserMemory, BotMemory, Answer, Action) :-
 select_answer(_, _, BotMemory, Answer, _) :-
     Answer = [nu, inteleg],
     BotMemory == memory{}.
-
-
 % atunci cand memoria botului nu este goala, se alege replica cu ce mai mica utilizare de pena acum
 select_answer(_, _, _, Answer, _) :-
     Answer = [nu, inteleg].
@@ -149,11 +155,10 @@ repeated_append(Max, Counter, Elem, List, Acc, ResultList) :-
   repeated_append(Max, Counter1, Elem, List, Result, ResultList).
 
 % regula de mai sus esueaza pentru Counter > Max
-repeated_append(Max, Max1, Elem, List, Acc, Acc) :- Max1 =:= Max + 1.
-
+repeated_append(Max, Max1, _, _, Acc, Acc) :- Max1 =:= Max + 1.
 
 % primeste o lista de replici si intoarce o lista de tokeni
-get_words_from_list(Dict, [], Acc, Acc).
+get_words_from_list(_, [], Acc, Acc).
 get_words_from_list(Dict, [H|RepList], Acc, TokensList) :-
   words(H, List),
   Val = Dict.get(H),
@@ -178,11 +183,16 @@ find_occurrences(Dict, Word, Result) :-
 % cu cât scorul e mai mare cu atât e mai probabil ca utilizatorul să fie fericit.
 %
 % frecventa pentru cuvintele de fericire
-get_happy_score(_UserMemory, _Score) :- fail.
+get_happy_score(UserMemory, Score) :-
+  happy(Word),
+  find_occurrences(UserMemory, Word, Score).
 
 % Atribuie un scor pentru tristețe (de cate ori au fost folosit cuvinte din predicatul sad(X))
 % cu cât scorul e mai mare cu atât e mai probabil ca utilizatorul să fie trist.
-get_sad_score(_UserMemory, _Score) :- fail.
+get_sad_score(UserMemory, Score) :-
+  sad(Word),
+  find_occurrences(UserMemory, Word, Score).
+
 
 % Pe baza celor doua scoruri alege emoția utilizatorul: `fericit`/`trist`,
 % sau `neutru` daca scorurile sunt egale.
@@ -192,7 +202,26 @@ get_sad_score(_UserMemory, _Score) :- fail.
 %
 % intoarce emotia cu scorul mai mare
 % daca sunt egale, da neutru
-get_emotion(_UserMemory, _Emotion) :- fail.
+get_emotion(UserMemory, fericit) :-
+  get_happy_score(UserMemory, HappyScore),
+  get_sad_score(UserMemory, SadScore),
+  HappyScore > 0,
+  SadScore > 0,
+  HappyScore > SadScore.
+
+get_emotion(UserMemory, trist) :-
+  get_happy_score(UserMemory, HappyScore),
+  get_sad_score(UserMemory, SadScore),
+  HappyScore > 0,
+  SadScore > 0,
+  HappyScore < SadScore.
+
+get_emotion(UserMemory, neutru) :-
+  get_happy_score(UserMemory, HappyScore),
+  get_sad_score(UserMemory, SadScore),
+  HappyScore > 0,
+  SadScore > 0,
+  HappyScore == SadScore.
 
 % Atribuie un scor pentru un Tag (de cate ori au fost folosit cuvinte din lista tag(Tag, Lista))
 % cu cât scorul e mai mare cu atât e mai probabil ca utilizatorul să vorbească despre acel subiect.
