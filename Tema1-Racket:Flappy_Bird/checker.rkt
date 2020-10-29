@@ -165,7 +165,7 @@
 
 (testul 7 : 10 puncte BONUS)
 (let* ([state (change (next-state initial-state) " ")]
-			[next-state (next-state-i state 8)]
+			[next-state (next-state-i state 12)]
 			[active (get-abilities-active (get-abilities next-state))])
 	(check-exp-part `-check-active-ability-time (/ 1. 4) (and (equal? (length active) 2) (andmap < (map get-ability-time active) '(30 10))) #t)
 	(check-exp-part `-check-active-ability-image (/ 1. 4) (map get-ability-image active)

@@ -7,6 +7,7 @@
 (provide get-ability-time)
 (provide get-ability-pos)
 (provide get-ability-next)
+(provide position-abilities)
 
 (provide (struct-out struct-ability))
 
@@ -53,7 +54,7 @@
 ; Folosiți random-position
 (define (position-abilities abilities)
   (map (λ (ability)
-          (if (= (get-ability-pos ability) null)
+          (if (null? (get-ability-pos ability))
               (struct-copy struct-ability ability [pos (random-position POSITION_RANGE)])
               ability))
          abilities))
@@ -61,7 +62,7 @@
 ; Fiecare abilitate are o funcție next care modifica stare jocului
 ; Compuneti toate funcțiile next în una singură
 ; Hint: compose
-(define (compose-abilities L) ;L lista de abilitatati
+(define (compose-abilities L) ;am considerat ca L este lista de abilitati dintr-o stare
   (apply compose (map (λ(ability)
                         (get-ability-next ability))
                       L)))
@@ -73,8 +74,8 @@
 ; Folosiți choice-abilities.
 
 (define (fill-abilities initial n abilities)
-	(if (< (length initial) n)
-            (append initial (choice-abilities (- n (length initial)) abilities))
+   (if (< (length abilities) n)   ;;daca nu sunt sufiecte elemente in lista, adauga cate mai sunt necesare
+           (append initial (choice-abilities (- n (length initial)) (position-abilities abilities)))
             initial))
             
             
